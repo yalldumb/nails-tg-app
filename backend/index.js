@@ -18,7 +18,18 @@ let bookings = [];
 
 function timeToMinutes(t) { const [h,m]=t.split(":").map(Number); return h*60+m; }
 function minutesToTime(mins) { const h=Math.floor(mins/60), m=mins%60; return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`; }
-
+app.get("/", (req, res) => {
+  res.type("html").send(`
+    <div style="font-family: ui-sans-serif, system-ui; padding: 24px;">
+      <h2>✅ Nails backend is running</h2>
+      <p>Try:</p>
+      <ul>
+        <li><a href="/health">/health</a></li>
+        <li><a href="/services">/services</a></li>
+      </ul>
+    </div>
+  `);
+});
 app.get("/health", (req,res)=>res.json({ok:true}));
 app.get("/services", (req,res)=>res.json({services}));
 
