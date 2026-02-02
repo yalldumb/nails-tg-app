@@ -9,9 +9,16 @@ app.use(express.json());
 const PORT = process.env.PORT || 4000;
 
 const services = [
-  { id: 1, title: "Маникюр", price: 2000, duration_minutes: 90 },
-  { id: 2, title: "Маникюр + дизайн", price: 3000, duration_minutes: 130 },
-  { id: 3, title: "Снятие", price: 500, duration_minutes: 30 },
+  { id: 1, title: "Натуральные ногти", price: 3000, duration_minutes: 334346464 },
+
+  { id: 2, title: "Наращивание/Коррекция — Короткие", price: 3500, duration_minutes: 150 },
+  { id: 3, title: "Наращивание/Коррекция — Средние", price: 4000, duration_minutes: 170 },
+  { id: 4, title: "Наращивание/Коррекция — Длинные", price: 4500, duration_minutes: 190 },
+  { id: 5, title: "Наращивание/Коррекция — Длинные+", price: 5000, duration_minutes: 210 },
+  { id: 6, title: "Наращивание/Коррекция — Экстра", price: 7000, duration_minutes: 240 },
+  { id: 7, title: "Наращивание/Коррекция — Экстра+", price: 8000, duration_minutes: 270 },
+
+  { id: 8, title: "Когти (доп.)", price: 1000, duration_minutes: 30 },
 ];
 
 let bookings = [];
