@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 type Service = { id: number; title: string; price: number; duration_minutes: number };
-type Booking = { id: number; serviceTitle: string; date: string; time: string; comment?: string };
+type Booking = { id: number; serviceTitle: string; date: string; comment?: string; images?: string[] };
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
@@ -20,10 +20,9 @@ export default function Page() {
   const [services, setServices] = useState<Service[]>([]);
   const [service, setService] = useState<Service | null>(null);
   const [date, setDate] = useState(todayIsoLocal());
-  const [slots, setSlots] = useState<string[]>([]);
-  const [time, setTime] = useState<string | null>(null);
   const [comment, setComment] = useState("");
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [images, setImages] = useState<string[]>([]);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [error, setError] = useState<string | null>(null);
   const [my, setMy] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
@@ -48,20 +47,65 @@ export default function Page() {
       .catch(() => setError("Не удалось загрузить услуги (backend запущен?)"));
   }, []);
 
-  useEffect(() => {
-    if (!API || !service || step < 2) return;
+  async function fileToDataUrl(file: File): Promise<string> {
+    const dataUrl: string = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("read failed"));
+      reader.readAsDataURL(file);
+    });
+
+    // Compress via canvas to keep payload small
+    const img = new Image();
+    img.src = dataUrl;
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("image load failed"));
+    });
+
+    const maxSide = 1280;
+    const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return dataUrl;
+    ctx.drawImage(img, 0, 0, w, h);
+
+    // jpeg is smaller than png for photos
+    return canvas.toDataURL("image/jpeg", 0.82);
+  }
+
+  async function onPickImages(files: FileList | null) {
+    if (!files) return;
+    const picked = Array.from(files).slice(0, 3 - images.length);
+    if (picked.length <= 0) return;
+
     setLoading(true);
     setError(null);
 
-    fetch(`${API}/availability?date=${encodeURIComponent(date)}&serviceId=${encodeURIComponent(service.id)}`)
-      .then((r) => r.json())
-      .then((d) => setSlots(d.slots || []))
-      .catch(() => setError("Не удалось загрузить слоты"))
-      .finally(() => setLoading(false));
-  }, [service, date, step]);
+    try {
+      const converted: string[] = [];
+      for (const f of picked) {
+        converted.push(await fileToDataUrl(f));
+      }
+      setImages((prev) => [...prev, ...converted].slice(0, 3));
+    } catch {
+      setError("Не удалось обработать фото");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function removeImage(idx: number) {
+    setImages((prev) => prev.filter((_, i) => i !== idx));
+  }
 
   async function createBooking() {
-    if (!API || !service || !time) return;
+    if (!API || !service) return;
 
     setLoading(true);
     setError(null);
@@ -74,8 +118,8 @@ export default function Page() {
         clientTelegramId,
         serviceId: service.id,
         date,
-        time,
         comment,
+        images,
       }),
     });
 
@@ -86,7 +130,7 @@ export default function Page() {
       return;
     }
 
-    setStep(4);
+    setStep(3);
     setLoading(false);
   }
 
@@ -145,40 +189,53 @@ export default function Page() {
               className="w-full p-3 rounded-xl bg-neutral-900 border border-white/10"
             />
 
-            <div className="flex flex-wrap gap-2">
-              {loading && <div className="text-sm text-neutral-400">загрузка…</div>}
-              {!loading &&
-                slots.map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setTime(t)}
-                    className={`px-4 py-2 rounded-full border ${
-                      time === t ? "bg-white text-black" : "bg-white/5 border-white/10"
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
+            <div className="space-y-2">
+              <div className="text-sm text-neutral-300">Референсы (до 3 фото)</div>
+
+              <label className="block w-full p-3 rounded-xl bg-white/5 border border-white/10 text-sm cursor-pointer hover:bg-white/10 transition">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    onPickImages(e.target.files);
+                    e.currentTarget.value = "";
+                  }}
+                />
+                ➕ Прикрепить фото
+              </label>
+
+              {images.length > 0 && (
+                <div className="flex gap-2 flex-wrap">
+                  {images.map((src, idx) => (
+                    <div key={idx} className="relative">
+                      <img
+                        src={src}
+                        alt={`ref-${idx + 1}`}
+                        className="h-16 w-16 object-cover rounded-xl border border-white/10"
+                      />
+                      <button
+                        onClick={() => removeImage(idx)}
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-black/70 border border-white/10 text-xs"
+                        aria-label="remove"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="text-xs text-neutral-500">Фото сжимаются автоматически перед отправкой.</div>
             </div>
 
-            <button
-              disabled={!time}
-              onClick={() => setStep(3)}
-              className="w-full py-3 rounded-2xl bg-white text-black disabled:opacity-40"
-            >
-              Дальше
-            </button>
-          </div>
-        )}
-
-        {step === 3 && service && time && (
-          <div className="space-y-3">
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Комментарий"
+              placeholder="Комментарий (укажи время и детали)"
               className="w-full p-3 rounded-xl bg-neutral-900 border border-white/10"
-              rows={3}
+              rows={4}
             />
 
             <button
@@ -186,12 +243,12 @@ export default function Page() {
               disabled={loading}
               className="w-full py-3 rounded-2xl bg-white text-black disabled:opacity-40"
             >
-              {loading ? "Создаю…" : "Подтвердить"}
+              {loading ? "Отправляю…" : "Отправить"}
             </button>
           </div>
         )}
 
-        {step === 4 && (
+        {step === 3 && (
           <div className="space-y-3">
             <div className="p-4 rounded-2xl bg-white/5 border border-white/10">Готово ✨</div>
 
@@ -207,9 +264,22 @@ export default function Page() {
               <div key={b.id} className="p-4 rounded-2xl bg-white/5 border border-white/10">
                 <div className="font-medium">{b.serviceTitle}</div>
                 <div className="text-xs text-neutral-400">
-                  {b.date} · {b.time}
+                  {b.date}
                 </div>
                 {b.comment ? <div className="mt-2 text-xs text-neutral-500">{b.comment}</div> : null}
+                {b.images && b.images.length > 0 ? (
+                  <div className="mt-3 flex gap-2 flex-wrap">
+                    {b.images.map((src, i) => (
+                      <a key={i} href={src} target="_blank" rel="noreferrer">
+                        <img
+                          src={src}
+                          alt={`img-${i + 1}`}
+                          className="h-16 w-16 object-cover rounded-xl border border-white/10"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ))}
 
