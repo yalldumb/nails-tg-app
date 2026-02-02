@@ -40,29 +40,14 @@ app.get("/", (req, res) => {
 app.get("/health", (req,res)=>res.json({ok:true}));
 app.get("/services", (req,res)=>res.json({services}));
 
-app.get("/availability", (req,res)=>{
-  const { date, serviceId } = req.query;
-  if (!date || !serviceId) return res.status(400).json({ error: "date and serviceId required" });
-  const service = services.find(s=>String(s.id)===String(serviceId));
-  if (!service) return res.status(404).json({ error: "service not found" });
-
-  const start=timeToMinutes("10:00"), end=timeToMinutes("20:00"), step=15;
-  const slots=[];
-  for (let t=start; t+service.duration_minutes<=end; t+=step) slots.push(minutesToTime(t));
-  res.json({ slots });
-});
-
 app.post("/bookings", (req,res)=>{
-  const { clientName, clientTelegramId, serviceId, date, time, comment } = req.body || {};
-  if (!clientName || !serviceId || !date || !time) return res.status(400).json({ error: "missing required fields" });
+  const { clientName, clientTelegramId, serviceId, date, comment } = req.body || {};
+  if (!clientName || !serviceId || !date) return res.status(400).json({ error: "missing required fields" });
 
   const service = services.find(s=>String(s.id)===String(serviceId));
   if (!service) return res.status(404).json({ error: "service not found" });
 
-  const conflict = bookings.find(b=>b.date===date && b.time===time);
-  if (conflict) return res.status(409).json({ error: "slot already booked" });
-
-  const booking = { id: Date.now(), clientName, clientTelegramId: clientTelegramId||null, serviceTitle: service.title, date, time, comment: comment||"" };
+  const booking = { id: Date.now(), clientName, clientTelegramId: clientTelegramId||null, serviceTitle: service.title, date, comment: comment||"" };
   bookings.push(booking);
   res.json({ ok: true, booking });
 });
