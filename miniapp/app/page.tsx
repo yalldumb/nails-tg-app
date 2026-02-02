@@ -150,8 +150,22 @@ export default function Page() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-white">
-      <div className="mx-auto max-w-md p-4">
+    <main
+      className="min-h-screen text-white relative"
+      style={{
+        backgroundImage: "url('/bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      }}
+    >
+      {/* Dark overlay for readability */}
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/70 to-black/90"
+      />
+
+      <div className="relative z-10 mx-auto max-w-md p-4">
         <h1 className="text-2xl font-semibold mb-4">Запись</h1>
 
         {error && (
