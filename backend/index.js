@@ -9,7 +9,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 4000;
 
 const services = [
-  { id: 1, title: "Натуральные ногти", price: 3000, duration_minutes: 334346464 },
+  { id: 1, title: "Натуральные ногти", price: 3000, duration_minutes: 80 },
 
   { id: 2, title: "Наращивание/Коррекция — Короткие", price: 3500, duration_minutes: 150 },
   { id: 3, title: "Наращивание/Коррекция — Средние", price: 4000, duration_minutes: 170 },
@@ -41,13 +41,22 @@ app.get("/health", (req,res)=>res.json({ok:true}));
 app.get("/services", (req,res)=>res.json({services}));
 
 app.post("/bookings", (req,res)=>{
-  const { clientName, clientTelegramId, serviceId, date, comment } = req.body || {};
+  const { clientName, clientTelegramId, serviceId, date, comment, images } = req.body || {};
   if (!clientName || !serviceId || !date) return res.status(400).json({ error: "missing required fields" });
 
   const service = services.find(s=>String(s.id)===String(serviceId));
   if (!service) return res.status(404).json({ error: "service not found" });
 
-  const booking = { id: Date.now(), clientName, clientTelegramId: clientTelegramId||null, serviceTitle: service.title, date, comment: comment||"" };
+  const safeImages = Array.isArray(images) ? images : [];
+  if (safeImages.length > 3) return res.status(400).json({ error: "max 3 images" });
+  for (const img of safeImages) {
+    if (typeof img !== "string") return res.status(400).json({ error: "invalid image" });
+    // crude size guard for base64/dataURL payloads
+    if (img.length > 1_500_000) return res.status(400).json({ error: "image too large" });
+    if (!img.startsWith("data:image/")) return res.status(400).json({ error: "invalid image format" });
+  }
+
+  const booking = { id: Date.now(), clientName, clientTelegramId: clientTelegramId||null, serviceTitle: service.title, date, comment: comment||"", images: safeImages };
   bookings.push(booking);
   res.json({ ok: true, booking });
 });
