@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-const API = process.env.NEXT_PUBLIC_API_BASE || "";
+const API = process.env.NEXT_PUBLIC_API_BASE;
 
-const SERVICES: { title: string; price: number | string }[] = [
+const SERVICES = [
   { title: "Натуральные ногти", price: 3000 },
   { title: "Короткие", price: 3500 },
   { title: "Средние", price: 4000 },
@@ -13,7 +13,7 @@ const SERVICES: { title: string; price: number | string }[] = [
   { title: "Экстра", price: 7000 },
   { title: "Экстра+", price: 8000 },
   { title: "Когти", price: "+1000" },
-];
+] as const;
 
 type Step = 1 | 2 | 3;
 
@@ -26,27 +26,25 @@ export default function Page() {
   const [images, setImages] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const selectedService = useMemo(
+    () => SERVICES.find((s) => s.title === service),
+    [service]
+  );
+
+  // Telegram user
   useEffect(() => {
     // @ts-ignore
     const tg = window?.Telegram?.WebApp;
-    const u = tg?.initDataUnsafe?.user;
-    if (u) {
+    if (tg?.initDataUnsafe?.user) {
+      const u = tg.initDataUnsafe.user;
       setName(u.first_name || "");
       setTelegramId(String(u.id));
     }
   }, []);
 
-  const selectedLabel = useMemo(() => {
-    const s = SERVICES.find((x) => x.title === service);
-    if (!s) return "";
-    return `${s.title} — ${typeof s.price === "number" ? `${s.price} ₽` : s.price}`;
-  }, [service]);
-
-  function addFiles(list: FileList | File[]) {
-    const arr = Array.from(list);
-    const canAdd = Math.max(0, 9 - images.length);
-    if (canAdd <= 0) return;
-    setImages((prev) => [...prev, ...arr.slice(0, canAdd)]);
+  function addFiles(list: FileList) {
+    const next = Array.from(list).slice(0, 9 - images.length);
+    setImages((prev) => [...prev, ...next]);
   }
 
   function removeImage(i: number) {
@@ -54,130 +52,129 @@ export default function Page() {
   }
 
   async function submit() {
-    if (!API) return alert("API не настроен (NEXT_PUBLIC_API_BASE)");
-    if (!service) return alert("Выбери услугу");
-    if (!name.trim()) return alert("Введи имя");
+    if (!service || !name) return;
 
     const fd = new FormData();
     fd.append("serviceTitle", service);
-    fd.append("clientName", name.trim());
+    fd.append("clientName", name);
     if (telegramId) fd.append("telegramId", telegramId);
-    fd.append("comment", comment || "");
+    fd.append("comment", comment);
     images.forEach((f) => fd.append("images", f));
 
     setLoading(true);
     try {
-      const r = await fetch(`${API}/bookings`, { method: "POST", body: fd });
-      if (!r.ok) throw new Error("bad status");
+      await fetch(`${API}/bookings`, { method: "POST", body: fd });
       setStep(3);
-    } catch {
-      alert("Ошибка отправки. Попробуй ещё раз.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main className="min-h-screen relative text-white overflow-hidden">
-      {/* background */}
+    <main className="min-h-screen relative text-white">
+      {/* background image */}
       <img
         src="/bg.jpg"
+        className="absolute inset-0 w-full h-full object-cover z-0"
         alt=""
-        className="absolute inset-0 w-full h-full object-cover -z-20"
       />
-      {/* overlay */}
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-black/60 via-black/55 to-black/80" />
-      <div className="absolute inset-0 -z-10 backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-black/55 z-0" />
 
-      <div className="relative z-10 mx-auto w-full max-w-md px-4 pt-10 pb-8">
-        {/* title */}
-        <div className="mb-5">
-          <h1 className="text-3xl font-semibold tracking-tight">Запись</h1>
-          {service ? (
-            <div className="mt-1 text-xs opacity-70">{selectedLabel}</div>
-          ) : (
-            <div className="mt-1 text-xs opacity-60">Выбери услугу и отправь фото/комментарий</div>
-          )}
-        </div>
+      <div className="relative z-10 max-w-md mx-auto px-4 py-6">
+        <h1 className="text-3xl font-semibold mb-1">Запись</h1>
+        <p className="text-sm opacity-70 mb-4">
+          Выбери услугу и отправь фото/комментарий
+        </p>
 
         {/* steps */}
-        <div className="flex gap-2 mb-5">
-          {(["Услуга", "Фото", "Готово"] as const).map((t, idx) => {
-            const s = (idx + 1) as Step;
-            const active = step === s;
-            return (
-              <div
-                key={t}
-                className={[
-                  "flex-1 text-center rounded-full px-3 py-2 text-[12px] border transition",
-                  active
-                    ? "bg-white/90 text-black border-white/20"
-                    : "bg-black/25 text-white/70 border-white/10",
-                ].join(" ")}
-              >
-                Шаг {s} · {t}
-              </div>
-            );
-          })}
+        <div className="flex gap-2 mb-4 text-sm">
+          <div
+            className={`px-4 py-2 rounded-full border border-white/15 ${
+              step === 1 ? "bg-white/90 text-black" : "bg-white/5 opacity-70"
+            }`}
+          >
+            Шаг 1 · Услуга
+          </div>
+          <div
+            className={`px-4 py-2 rounded-full border border-white/15 ${
+              step === 2 ? "bg-white/90 text-black" : "bg-white/5 opacity-70"
+            }`}
+          >
+            Шаг 2 · Фото
+          </div>
+          <div
+            className={`px-4 py-2 rounded-full border border-white/15 ${
+              step === 3 ? "bg-white/90 text-black" : "bg-white/5 opacity-70"
+            }`}
+          >
+            Шаг 3 · Готово
+          </div>
         </div>
 
-        {/* card */}
-        <div className="rounded-[28px] border border-white/12 bg-black/35 backdrop-blur-md shadow-[0_20px_80px_rgba(0,0,0,.45)] p-4">
+        {/* glass wrapper */}
+        <div className="rounded-3xl border border-white/10 bg-black/35 backdrop-blur-md p-4">
+          {/* STEP 1: CARDS */}
           {step === 1 && (
             <div className="space-y-3">
-              <select
-                value={service}
-                onChange={(e) => setService(e.target.value)}
-                className="w-full px-4 py-3 rounded-2xl bg-black/35 backdrop-blur-md border border-white/18 text-sm focus:outline-none"
-              >
-                <option value="">Выбери услугу</option>
-                {SERVICES.map((s) => (
-                  <option key={s.title} value={s.title}>
-                    {s.title} — {typeof s.price === "number" ? `${s.price} ₽` : s.price}
-                  </option>
-                ))}
-              </select>
-
-              <button
-                disabled={!service}
-                onClick={() => setStep(2)}
-                className="w-full py-3 rounded-2xl bg-white/90 text-black text-sm font-medium active:scale-[0.98] transition disabled:opacity-30"
-              >
-                Дальше
-              </button>
+              {SERVICES.map((s) => (
+                <button
+                  key={s.title}
+                  onClick={() => {
+                    setService(s.title);
+                    setStep(2);
+                  }}
+                  className="w-full text-left rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 active:scale-[0.99] transition p-4"
+                >
+                  <div className="text-base font-medium">{s.title}</div>
+                  <div className="mt-2 text-2xl font-semibold tracking-wide">
+                    {typeof s.price === "number" ? `${s.price} ₽` : s.price}
+                  </div>
+                </button>
+              ))}
             </div>
           )}
 
+          {/* STEP 2 */}
           {step === 2 && (
             <div className="space-y-3">
+              {selectedService && (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="text-sm opacity-75">Выбрано</div>
+                  <div className="text-base font-medium">{selectedService.title}</div>
+                  <div className="mt-1 text-xl font-semibold">
+                    {typeof selectedService.price === "number"
+                      ? `${selectedService.price} ₽`
+                      : selectedService.price}
+                  </div>
+                </div>
+              )}
+
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Имя"
-                className="w-full px-4 py-3 rounded-2xl bg-black/35 border border-white/18 text-sm text-white placeholder:text-white/45 focus:outline-none"
+                className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 outline-none"
               />
 
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Комментарий и желаемое время"
-                rows={4}
-                className="w-full px-4 py-3 rounded-2xl bg-black/35 border border-white/18 text-sm text-white placeholder:text-white/45 focus:outline-none resize-none"
+                className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 outline-none"
+                rows={3}
               />
 
-              {/* file button */}
               <label className="block">
+                <div className="text-sm opacity-80 mb-2">
+                  Добавить фото ({images.length}/9)
+                </div>
                 <input
                   type="file"
                   multiple
                   accept="image/*"
                   onChange={(e) => e.target.files && addFiles(e.target.files)}
-                  className="hidden"
+                  className="w-full text-sm"
                 />
-                <div className="w-full rounded-2xl border border-white/14 bg-white/10 px-4 py-3 text-sm text-white/90 active:scale-[0.99] transition">
-                  Добавить фото ({images.length}/9)
-                  <div className="text-[11px] text-white/55 mt-1">Формат: jpg/png/heic</div>
-                </div>
               </label>
 
               {images.length > 0 && (
@@ -186,13 +183,13 @@ export default function Page() {
                     <div key={i} className="relative">
                       <img
                         src={URL.createObjectURL(f)}
+                        className="h-24 w-full object-cover rounded-xl border border-white/10"
                         alt=""
-                        className="h-24 w-full object-cover rounded-2xl border border-white/10"
                       />
                       <button
-                        type="button"
                         onClick={() => removeImage(i)}
-                        className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-black/70 border border-white/10 text-[12px] text-white"
+                        className="absolute top-1 right-1 h-7 w-7 rounded-full bg-black/70 border border-white/15 text-sm"
+                        aria-label="remove"
                       >
                         ✕
                       </button>
@@ -201,19 +198,18 @@ export default function Page() {
                 </div>
               )}
 
-              <div className="flex gap-2 pt-1">
+              <div className="flex gap-2 pt-2">
                 <button
-                  type="button"
                   onClick={() => setStep(1)}
-                  className="flex-1 py-3 rounded-2xl bg-white/10 border border-white/14 text-white/90 text-sm active:scale-[0.98] transition"
+                  className="flex-1 py-3 rounded-2xl bg-white/8 border border-white/10"
                 >
                   Назад
                 </button>
 
                 <button
                   onClick={submit}
-                  disabled={loading || !name.trim() || !service}
-                  className="flex-1 py-3 rounded-2xl bg-white/90 text-black text-sm font-medium active:scale-[0.98] transition disabled:opacity-30"
+                  disabled={loading || !name || !service}
+                  className="flex-1 py-3 rounded-2xl bg-white text-black disabled:opacity-40"
                 >
                   {loading ? "Отправка…" : "Отправить"}
                 </button>
@@ -221,18 +217,22 @@ export default function Page() {
             </div>
           )}
 
+          {/* STEP 3 */}
           {step === 3 && (
-            <div className="py-10 text-center">
-              <div className="text-lg font-medium">Запись отправлена</div>
-              <div className="mt-2 text-sm text-white/70">Мастер свяжется с вами</div>
+            <div className="text-center py-10">
+              <div className="text-2xl font-semibold">Готово</div>
+              <div className="mt-2 text-sm opacity-70">
+                Запись отправлена. Мастер свяжется с вами.
+              </div>
+
               <button
-                className="mt-6 w-full py-3 rounded-2xl bg-white/10 border border-white/14 text-white/90 text-sm"
                 onClick={() => {
                   setStep(1);
                   setService("");
                   setComment("");
                   setImages([]);
                 }}
+                className="mt-6 w-full py-3 rounded-2xl bg-white/8 border border-white/10"
               >
                 Новая запись
               </button>
