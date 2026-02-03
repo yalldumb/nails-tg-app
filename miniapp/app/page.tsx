@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
@@ -64,21 +64,19 @@ export default function Page() {
     }
   }
 
-  const stepTitle = useMemo(() => {
-    if (step === 1) return "Услуга";
-    if (step === 2) return "Детали";
-    return "Готово";
-  }, [step]);
-
   return (
     <main className="min-h-screen relative text-white overflow-hidden">
-      <img src="/bg.jpg" className="absolute inset-0 w-full h-full object-cover z-0" />
+      <img
+        src="/bg.jpg"
+        className="absolute inset-0 w-full h-full object-cover z-0"
+        alt=""
+      />
       <div className="absolute inset-0 z-0 vignette" />
       <div className="absolute inset-0 z-0 gradientOverlay" />
 
       <div className="relative z-10 max-w-md mx-auto px-3 py-4 space-y-3">
         {/* pills */}
-        <div className="flex gap-2 text-[11px]">
+        <div className="pillsRow">
           <div className={`stepPill ${step === 1 ? "active" : ""}`}>Услуга</div>
           <div className={`stepPill ${step === 2 ? "active" : ""}`}>Детали</div>
           <div className={`stepPill ${step === 3 ? "active" : ""}`}>Готово</div>
@@ -107,14 +105,7 @@ export default function Page() {
 
         {/* STEP 2 */}
         {step === 2 && (
-          <div className="space-y-2 animIn">
-            <div className="sectionHead">
-              <div className="sectionTitle">{stepTitle}</div>
-              <button className="backTop pressable" onClick={() => setStep(1)} disabled={loading}>
-                Назад
-              </button>
-            </div>
-
+          <div className="space-y-2 animIn contentPad">
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -130,6 +121,7 @@ export default function Page() {
               rows={2}
             />
 
+            {/* upload (вернули + делаем всегда видимой) */}
             <label className="uploadBtn pressable">
               <input
                 type="file"
@@ -146,8 +138,12 @@ export default function Page() {
               <div className="grid grid-cols-3 gap-2">
                 {images.map((f, i) => (
                   <div key={i} className="relative">
-                    <img src={URL.createObjectURL(f)} className="h-16 w-full object-cover rounded-xl" alt="" />
-                    <button onClick={() => removeImage(i)} className="xBtn pressable" type="button">
+                    <img
+                      src={URL.createObjectURL(f)}
+                      className="h-16 w-full object-cover rounded-xl"
+                      alt=""
+                    />
+                    <button onClick={() => removeImage(i)} className="xBtn pressable">
                       ✕
                     </button>
                   </div>
@@ -155,11 +151,20 @@ export default function Page() {
               </div>
             )}
 
+            {/* bottom bar */}
             <div className="stickyBar">
-              <button className="btnGhost pressable" onClick={() => setStep(1)} disabled={loading}>
+              <button
+                className="btnGhost pressable"
+                onClick={() => setStep(1)}
+                disabled={loading}
+              >
                 Назад
               </button>
-              <button className="btn pressable" onClick={submit} disabled={loading || !name || !service}>
+              <button
+                className="btn pressable"
+                onClick={submit}
+                disabled={loading || !name || !service}
+              >
                 {loading ? "Отправка…" : "Отправить"}
               </button>
             </div>
@@ -169,8 +174,8 @@ export default function Page() {
         {/* STEP 3 */}
         {step === 3 && (
           <div className="text-center space-y-2 animIn py-3">
-            <div className="text-[14px] font-medium">Запись отправлена</div>
-            <p className="text-[11px] opacity-70">Мастер свяжется с вами</p>
+            <div className="doneTitle">Запись отправлена</div>
+            <p className="doneSub">Мастер свяжется с вами</p>
 
             <button
               className="btn pressable mt-2"
@@ -206,12 +211,17 @@ export default function Page() {
           );
         }
 
+        .pillsRow {
+          display: flex;
+          gap: 8px;
+        }
+
         .stepPill {
-          padding: 4px 8px;
+          padding: 4px 10px;
           border-radius: 999px;
           background: rgba(255, 255, 255, 0.06);
           border: 1px solid rgba(255, 255, 255, 0.12);
-          font-size: 10px;
+          font-size: 11px;
           opacity: 0.6;
         }
 
@@ -228,7 +238,6 @@ export default function Page() {
           background: rgba(0, 0, 0, 0.42);
           border: 1px solid rgba(255, 255, 255, 0.14);
           text-align: left;
-          transition: transform 120ms ease, box-shadow 160ms ease, border-color 180ms ease;
         }
 
         .serviceTitle {
@@ -240,26 +249,6 @@ export default function Page() {
           font-size: 14px;
           font-weight: 500;
           margin-top: 1px;
-        }
-
-        .sectionHead {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
-        }
-        .sectionTitle {
-          font-size: 12px;
-          opacity: 0.75;
-        }
-        .backTop {
-          font-size: 11px;
-          padding: 6px 10px;
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          color: #fff;
-          opacity: 0.9;
         }
 
         .input {
@@ -283,7 +272,6 @@ export default function Page() {
           font-size: 12px;
           text-align: left;
           cursor: pointer;
-          transition: transform 120ms ease, border-color 180ms ease, background 180ms ease;
         }
         .hiddenInput {
           display: none;
@@ -307,7 +295,6 @@ export default function Page() {
           font-size: 11px;
           line-height: 22px;
           text-align: center;
-          transition: transform 120ms ease, background 180ms ease;
         }
 
         .stickyBar {
@@ -318,9 +305,18 @@ export default function Page() {
           padding: 10px 14px;
           display: flex;
           gap: 10px;
-          background: linear-gradient(to top, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+          background: linear-gradient(
+            to top,
+            rgba(0, 0, 0, 0.75),
+            rgba(0, 0, 0, 0)
+          );
           backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
+        }
+
+        /* чтобы upload/preview не прятались за fixed панелью */
+        .contentPad {
+          padding-bottom: 88px;
         }
 
         .btn {
@@ -330,7 +326,6 @@ export default function Page() {
           background: white;
           color: black;
           font-size: 13px;
-          transition: transform 120ms ease, filter 160ms ease;
         }
 
         .btnGhost {
@@ -341,34 +336,15 @@ export default function Page() {
           color: white;
           font-size: 13px;
           border: 1px solid rgba(255, 255, 255, 0.12);
-          transition: transform 120ms ease, background 180ms ease, border-color 180ms ease;
         }
 
-        /* ✅ STEP C: luxury tap/press feedback */
-        .pressable {
-          -webkit-tap-highlight-color: transparent;
-          user-select: none;
+        .doneTitle {
+          font-size: 15px;
+          font-weight: 500;
         }
-        .pressable:active {
-          transform: scale(0.985);
-        }
-        .glassCard.pressable:active {
-          box-shadow: 0 10px 26px rgba(0, 0, 0, 0.25);
-          border-color: rgba(255, 255, 255, 0.22);
-        }
-        .btn.pressable:active {
-          transform: scale(0.985);
-          filter: brightness(0.98);
-        }
-        .btnGhost.pressable:active,
-        .uploadBtn.pressable:active {
-          transform: scale(0.985);
-          background: rgba(255, 255, 255, 0.1);
-          border-color: rgba(255, 255, 255, 0.18);
-        }
-        .xBtn.pressable:active {
-          transform: scale(0.92);
-          background: rgba(0, 0, 0, 0.75);
+        .doneSub {
+          font-size: 12px;
+          opacity: 0.7;
         }
 
         .animIn {
@@ -384,6 +360,16 @@ export default function Page() {
             opacity: 1;
             transform: translateY(0);
           }
+        }
+
+        /* luxury press feedback */
+        .pressable {
+          transition: transform 120ms ease, filter 120ms ease;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .pressable:active {
+          transform: scale(0.985);
+          filter: brightness(1.05);
         }
       `}</style>
     </main>
