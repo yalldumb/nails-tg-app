@@ -94,7 +94,7 @@ export default function Page() {
                   setService(s.title);
                   setStep(2);
                 }}
-                className="glassCard"
+                className="glassCard pressable"
               >
                 <div className="serviceTitle">{s.title}</div>
                 <div className="servicePrice">
@@ -108,10 +108,9 @@ export default function Page() {
         {/* STEP 2 */}
         {step === 2 && (
           <div className="space-y-2 animIn">
-            {/* ✅ step 4: sticky bottom actions + back button */}
             <div className="sectionHead">
               <div className="sectionTitle">{stepTitle}</div>
-              <button className="backTop" onClick={() => setStep(1)} disabled={loading}>
+              <button className="backTop pressable" onClick={() => setStep(1)} disabled={loading}>
                 Назад
               </button>
             </div>
@@ -131,8 +130,7 @@ export default function Page() {
               rows={2}
             />
 
-            {/* prettier upload */}
-            <label className="uploadBtn">
+            <label className="uploadBtn pressable">
               <input
                 type="file"
                 multiple
@@ -149,7 +147,7 @@ export default function Page() {
                 {images.map((f, i) => (
                   <div key={i} className="relative">
                     <img src={URL.createObjectURL(f)} className="h-16 w-full object-cover rounded-xl" alt="" />
-                    <button onClick={() => removeImage(i)} className="xBtn">
+                    <button onClick={() => removeImage(i)} className="xBtn pressable" type="button">
                       ✕
                     </button>
                   </div>
@@ -157,12 +155,11 @@ export default function Page() {
               </div>
             )}
 
-            {/* bottom bar */}
             <div className="stickyBar">
-              <button className="btnGhost" onClick={() => setStep(1)} disabled={loading}>
+              <button className="btnGhost pressable" onClick={() => setStep(1)} disabled={loading}>
                 Назад
               </button>
-              <button className="btn" onClick={submit} disabled={loading || !name || !service}>
+              <button className="btn pressable" onClick={submit} disabled={loading || !name || !service}>
                 {loading ? "Отправка…" : "Отправить"}
               </button>
             </div>
@@ -176,7 +173,7 @@ export default function Page() {
             <p className="text-[11px] opacity-70">Мастер свяжется с вами</p>
 
             <button
-              className="btn mt-2"
+              className="btn pressable mt-2"
               onClick={() => {
                 setService("");
                 setComment("");
@@ -224,7 +221,6 @@ export default function Page() {
           opacity: 1;
         }
 
-        /* ✅ tweak: меньше расстояние между карточками, но выше карточки */
         .glassCard {
           width: 100%;
           padding: 12px 12px;
@@ -232,6 +228,7 @@ export default function Page() {
           background: rgba(0, 0, 0, 0.42);
           border: 1px solid rgba(255, 255, 255, 0.14);
           text-align: left;
+          transition: transform 120ms ease, box-shadow 160ms ease, border-color 180ms ease;
         }
 
         .serviceTitle {
@@ -286,6 +283,7 @@ export default function Page() {
           font-size: 12px;
           text-align: left;
           cursor: pointer;
+          transition: transform 120ms ease, border-color 180ms ease, background 180ms ease;
         }
         .hiddenInput {
           display: none;
@@ -309,9 +307,9 @@ export default function Page() {
           font-size: 11px;
           line-height: 22px;
           text-align: center;
+          transition: transform 120ms ease, background 180ms ease;
         }
 
-        /* ✅ step 4: sticky bottom bar */
         .stickyBar {
           position: fixed;
           left: 0;
@@ -332,6 +330,7 @@ export default function Page() {
           background: white;
           color: black;
           font-size: 13px;
+          transition: transform 120ms ease, filter 160ms ease;
         }
 
         .btnGhost {
@@ -342,6 +341,34 @@ export default function Page() {
           color: white;
           font-size: 13px;
           border: 1px solid rgba(255, 255, 255, 0.12);
+          transition: transform 120ms ease, background 180ms ease, border-color 180ms ease;
+        }
+
+        /* ✅ STEP C: luxury tap/press feedback */
+        .pressable {
+          -webkit-tap-highlight-color: transparent;
+          user-select: none;
+        }
+        .pressable:active {
+          transform: scale(0.985);
+        }
+        .glassCard.pressable:active {
+          box-shadow: 0 10px 26px rgba(0, 0, 0, 0.25);
+          border-color: rgba(255, 255, 255, 0.22);
+        }
+        .btn.pressable:active {
+          transform: scale(0.985);
+          filter: brightness(0.98);
+        }
+        .btnGhost.pressable:active,
+        .uploadBtn.pressable:active {
+          transform: scale(0.985);
+          background: rgba(255, 255, 255, 0.1);
+          border-color: rgba(255, 255, 255, 0.18);
+        }
+        .xBtn.pressable:active {
+          transform: scale(0.92);
+          background: rgba(0, 0, 0, 0.75);
         }
 
         .animIn {
