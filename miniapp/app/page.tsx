@@ -71,7 +71,7 @@ export default function Page() {
       <div className="absolute inset-0 bg-black/55 z-0" />
 
       <div className="relative z-10 max-w-md mx-auto px-2 py-3">
-        {/* steps (one line, smaller) */}
+        {/* steps */}
         <div className="flex gap-1.5 mb-2 text-[11px]">
           {[
             { s: 1, t: "Услуга" },
@@ -81,7 +81,7 @@ export default function Page() {
             <div
               key={x.s}
               className={[
-                "px-2 py-1 rounded-full border",
+                "px-2 py-1 rounded-full border whitespace-nowrap",
                 step === x.s
                   ? "bg-white text-black border-white/80"
                   : "bg-white/5 border-white/10 opacity-70",
@@ -95,7 +95,7 @@ export default function Page() {
         <div className="rounded-xl border border-white/10 bg-black/35 backdrop-blur-md p-2">
           {/* STEP 1 */}
           {step === 1 && (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-2">
               {SERVICES.map((s) => (
                 <button
                   key={s.title}
@@ -103,7 +103,7 @@ export default function Page() {
                     setService(s.title);
                     setStep(2);
                   }}
-                  className="rounded-lg border border-white/10 bg-white/5 p-2 text-left"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-left"
                 >
                   <div className="text-[11px] opacity-80 leading-tight">
                     {s.title}
@@ -125,14 +125,14 @@ export default function Page() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Имя"
-                className="w-full px-2.5 py-2 rounded-lg bg-white/5 border border-white/10 text-[12px]"
+                className="w-full px-2.5 py-2 rounded-lg bg-white/5 border border-white/10 text-[12px] outline-none"
               />
 
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Комментарий и желаемое время"
-                className="w-full px-2.5 py-2 rounded-lg bg-white/5 border border-white/10 text-[12px] resize-none"
+                className="w-full px-2.5 py-2 rounded-lg bg-white/5 border border-white/10 text-[12px] outline-none resize-none"
                 rows={2}
               />
 
@@ -185,9 +185,7 @@ export default function Page() {
           {step === 3 && (
             <div className="text-center py-6">
               <div className="text-[14px] font-medium">Готово</div>
-              <div className="mt-1 text-[11px] opacity-70">
-                Мастер свяжется с вами
-              </div>
+              <div className="mt-1 text-[11px] opacity-70">Мастер свяжется с вами</div>
               <button
                 onClick={() => {
                   setStep(1);
