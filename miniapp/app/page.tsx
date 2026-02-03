@@ -26,6 +26,12 @@ export default function Page() {
   const [images, setImages] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // animation key (changes when step changes)
+  const [animKey, setAnimKey] = useState(0);
+  useEffect(() => {
+    setAnimKey((k) => k + 1);
+  }, [step]);
+
   useEffect(() => {
     // @ts-ignore
     const tg = window?.Telegram?.WebApp;
@@ -93,124 +99,147 @@ export default function Page() {
         </div>
 
         <div className="rounded-xl border border-white/10 bg-black/35 backdrop-blur-md p-2">
-          {/* STEP 1 */}
-          {step === 1 && (
-            <div className="flex flex-col gap-2">
-              {SERVICES.map((s) => {
-                const selected = service === s.title;
-                const dim = service && !selected;
+          {/* animated stage wrapper */}
+          <div key={animKey} className="animIn">
+            {/* STEP 1 */}
+            {step === 1 && (
+              <div className="flex flex-col gap-2">
+                {SERVICES.map((s) => {
+                  const selected = service === s.title;
+                  const dim = service && !selected;
 
-                return (
+                  return (
+                    <button
+                      key={s.title}
+                      onClick={() => {
+                        setService(s.title);
+                        setStep(2);
+                      }}
+                      className={[
+                        "w-full rounded-lg border px-3 py-2 text-left transition",
+                        selected
+                          ? "bg-white/15 border-white/30 shadow-[0_0_0_1px_rgba(255,255,255,.15)]"
+                          : "bg-white/5 border-white/10",
+                        dim ? "opacity-55" : "opacity-100",
+                        "active:scale-[0.99]",
+                      ].join(" ")}
+                    >
+                      <div className="text-[11px] opacity-80 leading-tight">{s.title}</div>
+                      <div className="mt-0.5 text-[15px] font-medium tracking-tight">
+                        {typeof s.price === "number" ? `${s.price} ₽` : s.price}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* STEP 2 */}
+            {step === 2 && (
+              <div className="space-y-2">
+                <div className="text-[11px] opacity-70">{service}</div>
+
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Имя"
+                  className="w-full px-2.5 py-2 rounded-lg bg-white/5 border border-white/10 text-[12px] outline-none"
+                />
+
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Комментарий и желаемое время"
+                  className="w-full px-2.5 py-2 rounded-lg bg-white/5 border border-white/10 text-[12px] outline-none resize-none"
+                  rows={2}
+                />
+
+                <div className="flex items-center justify-between">
+                  <label className="px-2.5 py-2 rounded-lg bg-white/8 border border-white/10 text-[11px]">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => e.target.files && addFiles(e.target.files)}
+                      className="hidden"
+                    />
+                    Фото ({images.length}/9)
+                  </label>
                   <button
-                    key={s.title}
-                    onClick={() => {
-                      setService(s.title);
-                      setStep(2);
-                    }}
-                    className={[
-                      "w-full rounded-lg border px-3 py-2 text-left transition",
-                      selected
-                        ? "bg-white/15 border-white/30 shadow-[0_0_0_1px_rgba(255,255,255,.15)]"
-                        : "bg-white/5 border-white/10",
-                      dim ? "opacity-55" : "opacity-100",
-                      "active:scale-[0.99]",
-                    ].join(" ")}
+                    onClick={() => setStep(1)}
+                    className="px-2.5 py-2 rounded-lg bg-white/8 border border-white/10 text-[11px]"
                   >
-                    <div className="text-[11px] opacity-80 leading-tight">{s.title}</div>
-                    <div className="mt-0.5 text-[15px] font-medium tracking-tight">
-                      {typeof s.price === "number" ? `${s.price} ₽` : s.price}
-                    </div>
+                    Назад
                   </button>
-                );
-              })}
-            </div>
-          )}
+                </div>
 
-          {/* STEP 2 */}
-          {step === 2 && (
-            <div className="space-y-2">
-              <div className="text-[11px] opacity-70">{service}</div>
+                {images.length > 0 && (
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {previews.map((src, i) => (
+                      <div key={src} className="relative">
+                        <img
+                          src={src}
+                          className="h-16 w-full object-cover rounded-md border border-white/10"
+                        />
+                        <button
+                          onClick={() => removeImage(i)}
+                          className="absolute top-0.5 right-0.5 h-5 w-5 rounded-full bg-black/70 border border-white/10 text-[10px]"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Имя"
-                className="w-full px-2.5 py-2 rounded-lg bg-white/5 border border-white/10 text-[12px] outline-none"
-              />
-
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Комментарий и желаемое время"
-                className="w-full px-2.5 py-2 rounded-lg bg-white/5 border border-white/10 text-[12px] outline-none resize-none"
-                rows={2}
-              />
-
-              <div className="flex items-center justify-between">
-                <label className="px-2.5 py-2 rounded-lg bg-white/8 border border-white/10 text-[11px]">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={(e) => e.target.files && addFiles(e.target.files)}
-                    className="hidden"
-                  />
-                  Фото ({images.length}/9)
-                </label>
                 <button
-                  onClick={() => setStep(1)}
-                  className="px-2.5 py-2 rounded-lg bg-white/8 border border-white/10 text-[11px]"
+                  onClick={submit}
+                  disabled={loading || !name.trim()}
+                  className="w-full py-2.5 rounded-xl bg-white text-black text-[12px] disabled:opacity-50"
                 >
-                  Назад
+                  {loading ? "Отправка…" : "Отправить"}
                 </button>
               </div>
+            )}
 
-              {images.length > 0 && (
-                <div className="grid grid-cols-3 gap-1.5">
-                  {previews.map((src, i) => (
-                    <div key={src} className="relative">
-                      <img src={src} className="h-16 w-full object-cover rounded-md border border-white/10" />
-                      <button
-                        onClick={() => removeImage(i)}
-                        className="absolute top-0.5 right-0.5 h-5 w-5 rounded-full bg-black/70 border border-white/10 text-[10px]"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <button
-                onClick={submit}
-                disabled={loading || !name.trim()}
-                className="w-full py-2.5 rounded-xl bg-white text-black text-[12px] disabled:opacity-50"
-              >
-                {loading ? "Отправка…" : "Отправить"}
-              </button>
-            </div>
-          )}
-
-          {/* STEP 3 */}
-          {step === 3 && (
-            <div className="text-center py-6">
-              <div className="text-[14px] font-medium">Готово</div>
-              <div className="mt-1 text-[11px] opacity-70">Мастер свяжется с вами</div>
-              <button
-                onClick={() => {
-                  setStep(1);
-                  setService("");
-                  setComment("");
-                  setImages([]);
-                }}
-                className="mt-3 w-full py-2 rounded-xl bg-white/8 border border-white/10 text-[12px]"
-              >
-                Новая запись
-              </button>
-            </div>
-          )}
+            {/* STEP 3 */}
+            {step === 3 && (
+              <div className="text-center py-6">
+                <div className="text-[14px] font-medium">Готово</div>
+                <div className="mt-1 text-[11px] opacity-70">Мастер свяжется с вами</div>
+                <button
+                  onClick={() => {
+                    setStep(1);
+                    setService("");
+                    setComment("");
+                    setImages([]);
+                  }}
+                  className="mt-3 w-full py-2 rounded-xl bg-white/8 border border-white/10 text-[12px]"
+                >
+                  Новая запись
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* css-in-tsx */}
+      <style jsx global>{`
+        .animIn {
+          animation: animIn 180ms ease-out both;
+        }
+        @keyframes animIn {
+          from {
+            opacity: 0;
+            transform: translateY(6px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </main>
   );
 }
