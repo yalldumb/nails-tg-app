@@ -182,15 +182,15 @@ export default function Page() {
         </div>
       </div>
 
-      {/* sticky button */}
-      {step !== 3 && (
+      {/* sticky bottom button: только на шаге 2 */}
+      {step === 2 && (
         <div className="fixed bottom-0 inset-x-0 z-20 bg-black/70 backdrop-blur-md border-t border-white/10 p-3">
           <button
-            onClick={step === 2 ? submit : undefined}
-            disabled={step === 2 && (!name.trim() || loading)}
+            onClick={submit}
+            disabled={!name.trim() || loading}
             className="w-full py-3 rounded-xl bg-white text-black text-[13px] disabled:opacity-40"
           >
-            {step === 1 ? "Выбрать услугу" : loading ? "Отправка…" : "Отправить"}
+            {loading ? "Отправка…" : "Отправить"}
           </button>
         </div>
       )}
