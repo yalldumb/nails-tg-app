@@ -96,23 +96,33 @@ export default function Page() {
           {/* STEP 1 */}
           {step === 1 && (
             <div className="flex flex-col gap-2">
-              {SERVICES.map((s) => (
-                <button
-                  key={s.title}
-                  onClick={() => {
-                    setService(s.title);
-                    setStep(2);
-                  }}
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-left"
-                >
-                  <div className="text-[11px] opacity-80 leading-tight">
-                    {s.title}
-                  </div>
-                  <div className="mt-0.5 text-[15px] font-medium tracking-tight">
-                    {typeof s.price === "number" ? `${s.price} ₽` : s.price}
-                  </div>
-                </button>
-              ))}
+              {SERVICES.map((s) => {
+                const selected = service === s.title;
+                const dim = service && !selected;
+
+                return (
+                  <button
+                    key={s.title}
+                    onClick={() => {
+                      setService(s.title);
+                      setStep(2);
+                    }}
+                    className={[
+                      "w-full rounded-lg border px-3 py-2 text-left transition",
+                      selected
+                        ? "bg-white/15 border-white/30 shadow-[0_0_0_1px_rgba(255,255,255,.15)]"
+                        : "bg-white/5 border-white/10",
+                      dim ? "opacity-55" : "opacity-100",
+                      "active:scale-[0.99]",
+                    ].join(" ")}
+                  >
+                    <div className="text-[11px] opacity-80 leading-tight">{s.title}</div>
+                    <div className="mt-0.5 text-[15px] font-medium tracking-tight">
+                      {typeof s.price === "number" ? `${s.price} ₽` : s.price}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
 
