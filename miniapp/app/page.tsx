@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
 const SERVICES = [
   { title: "Натуральные ногти", price: 3000 },
-  { title: "Наращивание: короткие", price: 3500 },
-  { title: "Наращивание: средние", price: 4000 },
-  { title: "Наращивание: длинные", price: 4500 },
-  { title: "Наращивание: длинные+", price: 5000 },
-  { title: "Наращивание: экстра", price: 7000 },
-  { title: "Наращивание: экстра+", price: 8000 },
+  { title: "Короткие", price: 3500 },
+  { title: "Средние", price: 4000 },
+  { title: "Длинные", price: 4500 },
+  { title: "Длинные+", price: 5000 },
+  { title: "Экстра", price: 7000 },
+  { title: "Экстра+", price: 8000 },
   { title: "Когти", price: "+1000" },
-] as const;
+];
 
 type Step = 1 | 2 | 3;
 
@@ -26,184 +26,222 @@ export default function Page() {
   const [images, setImages] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [animKey, setAnimKey] = useState(0);
-  useEffect(() => setAnimKey((k) => k + 1), [step]);
-
   useEffect(() => {
     // @ts-ignore
     const tg = window?.Telegram?.WebApp;
-    const u = tg?.initDataUnsafe?.user;
-    if (u) {
+    if (tg?.initDataUnsafe?.user) {
+      const u = tg.initDataUnsafe.user;
       setName(u.first_name || "");
       setTelegramId(String(u.id));
     }
   }, []);
 
-  const previews = useMemo(() => images.map((f) => URL.createObjectURL(f)), [images]);
-  useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
-
-  function addFiles(files: FileList | File[]) {
+  async function addFiles(files: FileList | File[]) {
     const list = Array.from(files).slice(0, 9 - images.length);
-    if (list.length) setImages((p) => [...p, ...list]);
+    setImages((prev) => [...prev, ...list]);
   }
 
   function removeImage(i: number) {
-    setImages((p) => p.filter((_, idx) => idx !== i));
+    setImages((prev) => prev.filter((_, idx) => idx !== i));
   }
 
   async function submit() {
-    if (!API) return;
     const fd = new FormData();
     fd.append("serviceTitle", service);
     fd.append("clientName", name);
     if (telegramId) fd.append("telegramId", telegramId);
     fd.append("comment", comment);
     images.forEach((f) => fd.append("images", f));
-    try {
-      setLoading(true);
-      await fetch(`${API}/bookings`, { method: "POST", body: fd });
-      setStep(3);
-    } finally {
-      setLoading(false);
-    }
+
+    setLoading(true);
+    await fetch(`${API}/bookings`, { method: "POST", body: fd });
+    setLoading(false);
+    setStep(3);
   }
 
   return (
-    <main className="min-h-screen relative text-white pb-24">
-      <img src="/bg.jpg" className="absolute inset-0 w-full h-full object-cover z-0" />
-      <div className="absolute inset-0 bg-black/55 z-0" />
+    <main className="min-h-screen relative text-white overflow-hidden">
+      {/* фон */}
+      <img
+        src="/bg.jpg"
+        className="absolute inset-0 w-full h-full object-cover z-0"
+      />
 
-      <div className="relative z-10 max-w-md mx-auto px-2 py-3">
-        {/* steps */}
-        <div className="flex gap-1.5 mb-2 text-[11px]">
-          {[
-            { s: 1, t: "Услуга" },
-            { s: 2, t: "Фото" },
-            { s: 3, t: "Готово" },
-          ].map((x) => (
-            <div
-              key={x.s}
-              className={[
-                "px-2 py-1 rounded-full border whitespace-nowrap",
-                step === x.s
-                  ? "bg-white text-black border-white/80"
-                  : "bg-white/5 border-white/10 opacity-70",
-              ].join(" ")}
-            >
-              {x.t}
-            </div>
-          ))}
+      {/* luxury виньетка */}
+      <div className="absolute inset-0 z-0 vignette" />
+
+      {/* мягкий градиент */}
+      <div className="absolute inset-0 z-0 gradientOverlay" />
+
+      <div className="relative z-10 max-w-md mx-auto px-4 py-6 space-y-4">
+        {/* шаги */}
+        <div className="flex gap-2 text-xs">
+          <div className={`stepPill ${step === 1 ? "active" : ""}`}>Услуга</div>
+          <div className={`stepPill ${step === 2 ? "active" : ""}`}>Детали</div>
+          <div className={`stepPill ${step === 3 ? "active" : ""}`}>Готово</div>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-black/35 backdrop-blur-md p-2">
-          <div key={animKey} className="animIn">
-            {step === 1 && (
-              <div className="flex flex-col gap-2">
-                {SERVICES.map((s) => {
-                  const selected = service === s.title;
-                  const dim = service && !selected;
-
-                  return (
-                    <button
-                      key={s.title}
-                      onClick={() => {
-                        setService(s.title);
-                        setStep(2);
-                      }}
-                      className={[
-                        "w-full rounded-lg border px-3 py-2 text-left transition relative overflow-hidden",
-                        selected
-                          ? "bg-white/12 border-white/30"
-                          : "bg-white/5 border-white/10",
-                        dim ? "opacity-55" : "opacity-100",
-                        "active:scale-[0.99]",
-                      ].join(" ")}
-                    >
-                      {/* soft shine when selected */}
-                      {selected && <div className="shine" />}
-
-                      <div className="serviceTitle">{s.title}</div>
-                      <div className="servicePrice">
-                        {typeof s.price === "number" ? `${s.price} ₽` : s.price}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {step === 2 && (
-              <div className="space-y-2">
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Имя"
-                  className="w-full px-2.5 py-2 rounded-lg bg-white/5 border border-white/10 text-[12px] outline-none"
-                />
-                <textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Комментарий и желаемое время"
-                  rows={2}
-                  className="w-full px-2.5 py-2 rounded-lg bg-white/5 border border-white/10 text-[12px] outline-none resize-none"
-                />
-
-                <label className="inline-block px-3 py-2 rounded-lg bg-white/8 border border-white/10 text-[11px]">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={(e) => e.target.files && addFiles(e.target.files)}
-                    className="hidden"
-                  />
-                  Фото ({images.length}/9)
-                </label>
-
-                {images.length > 0 && (
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {previews.map((src, i) => (
-                      <div key={src} className="relative">
-                        <img src={src} className="h-16 w-full object-cover rounded-md border border-white/10" />
-                        <button
-                          onClick={() => removeImage(i)}
-                          className="absolute top-0.5 right-0.5 h-5 w-5 bg-black/70 rounded-full border border-white/10 text-[10px]"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {step === 3 && (
-              <div className="text-center py-6">
-                <div className="text-[14px] font-medium">Готово</div>
-                <div className="text-[11px] opacity-70">Мастер свяжется с вами</div>
-              </div>
-            )}
+        {/* STEP 1 */}
+        {step === 1 && (
+          <div className="space-y-2 animIn">
+            {SERVICES.map((s) => (
+              <button
+                key={s.title}
+                onClick={() => {
+                  setService(s.title);
+                  setStep(2);
+                }}
+                className="glassCard"
+              >
+                <div className="serviceTitle">{s.title}</div>
+                <div className="servicePrice">
+                  {typeof s.price === "number" ? `${s.price} ₽` : s.price}
+                </div>
+              </button>
+            ))}
           </div>
-        </div>
+        )}
+
+        {/* STEP 2 */}
+        {step === 2 && (
+          <div className="space-y-3 animIn">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Имя"
+              className="input"
+            />
+
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Комментарий и желаемое время"
+              className="input"
+              rows={3}
+            />
+
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={(e) => e.target.files && addFiles(e.target.files)}
+              className="text-xs opacity-80"
+            />
+
+            {images.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {images.map((f, i) => (
+                  <div key={i} className="relative">
+                    <img
+                      src={URL.createObjectURL(f)}
+                      className="h-20 w-full object-cover rounded-xl"
+                    />
+                    <button
+                      onClick={() => removeImage(i)}
+                      className="absolute top-1 right-1 h-5 w-5 bg-black/70 rounded-full text-[10px]"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={submit}
+              disabled={loading || !name}
+              className="btn"
+            >
+              {loading ? "Отправка…" : "Отправить"}
+            </button>
+          </div>
+        )}
+
+        {/* STEP 3 */}
+        {step === 3 && (
+          <div className="text-center space-y-2 animIn">
+            <div className="text-lg font-medium">Запись отправлена</div>
+            <p className="text-xs opacity-70">Мастер свяжется с вами</p>
+          </div>
+        )}
       </div>
 
-      {/* sticky bottom button (only step 2) */}
-      {step === 2 && (
-        <div className="fixed bottom-0 inset-x-0 z-20 bg-black/70 backdrop-blur-md border-t border-white/10 p-3">
-          <button
-            onClick={submit}
-            disabled={!name.trim() || loading}
-            className="w-full py-3 rounded-xl bg-white text-black text-[13px] disabled:opacity-40"
-          >
-            {loading ? "Отправка…" : "Отправить"}
-          </button>
-        </div>
-      )}
-
       <style jsx global>{`
-        .animIn {
-          animation: animIn 180ms ease-out both;
+        .vignette {
+          background:
+            radial-gradient(ellipse at center,
+              rgba(0,0,0,0) 0%,
+              rgba(0,0,0,.35) 55%,
+              rgba(0,0,0,.75) 100%);
         }
+
+        .gradientOverlay {
+          background: linear-gradient(
+            180deg,
+            rgba(0,0,0,.35) 0%,
+            rgba(0,0,0,.15) 40%,
+            rgba(0,0,0,.55) 100%
+          );
+        }
+
+        .stepPill {
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: rgba(255,255,255,.06);
+          border: 1px solid rgba(255,255,255,.12);
+          font-size: 11px;
+          opacity: .6;
+        }
+
+        .stepPill.active {
+          background: rgba(255,255,255,.85);
+          color: #000;
+          opacity: 1;
+        }
+
+        .glassCard {
+          width: 100%;
+          padding: 12px;
+          border-radius: 18px;
+          background: rgba(0,0,0,.45);
+          border: 1px solid rgba(255,255,255,.14);
+          text-align: left;
+        }
+
+        .serviceTitle {
+          font-size: 12px;
+          opacity: .75;
+        }
+
+        .servicePrice {
+          font-size: 16px;
+          font-weight: 500;
+          margin-top: 2px;
+        }
+
+        .input {
+          width: 100%;
+          padding: 10px 12px;
+          border-radius: 14px;
+          background: rgba(0,0,0,.45);
+          border: 1px solid rgba(255,255,255,.14);
+          font-size: 13px;
+          color: white;
+        }
+
+        .btn {
+          width: 100%;
+          padding: 12px;
+          border-radius: 18px;
+          background: white;
+          color: black;
+          font-size: 14px;
+        }
+
+        .animIn {
+          animation: animIn 160ms ease-out both;
+        }
+
         @keyframes animIn {
           from {
             opacity: 0;
@@ -213,32 +251,6 @@ export default function Page() {
             opacity: 1;
             transform: translateY(0);
           }
-        }
-
-        .serviceTitle {
-          font-size: 11px;
-          opacity: 0.78;
-          letter-spacing: 0.01em;
-          font-weight: 400;
-          line-height: 1.2;
-        }
-
-        .servicePrice {
-          margin-top: 2px;
-          font-size: 16px;
-          font-weight: 550;
-          letter-spacing: 0.02em;
-          font-variant-numeric: tabular-nums;
-        }
-
-        .shine {
-          position: absolute;
-          inset: -40px -80px auto auto;
-          width: 180px;
-          height: 180px;
-          background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), rgba(255,255,255,0) 60%);
-          transform: rotate(15deg);
-          pointer-events: none;
         }
       `}</style>
     </main>
