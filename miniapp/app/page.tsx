@@ -53,7 +53,8 @@ export default function AdminPage() {
         alt=""
         className="absolute inset-0 w-full h-full object-cover -z-10"
       />
-      <div className="relative z-10 mx-auto max-w-md p-4 space-y-4">
+      <div className="absolute inset-0 bg-black/60 -z-10" />
+      <div className="relative z-10 mx-auto max-w-md p-4 space-y-4 bg-black/60 backdrop-blur-md rounded-3xl mt-6">
         <h1 className="text-2xl font-semibold">Админка</h1>
 
         <input
