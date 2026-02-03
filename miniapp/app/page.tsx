@@ -102,6 +102,7 @@ export default function Page() {
                 {SERVICES.map((s) => {
                   const selected = service === s.title;
                   const dim = service && !selected;
+
                   return (
                     <button
                       key={s.title}
@@ -110,15 +111,19 @@ export default function Page() {
                         setStep(2);
                       }}
                       className={[
-                        "w-full rounded-lg border px-3 py-2 text-left transition",
+                        "w-full rounded-lg border px-3 py-2 text-left transition relative overflow-hidden",
                         selected
-                          ? "bg-white/15 border-white/30"
+                          ? "bg-white/12 border-white/30"
                           : "bg-white/5 border-white/10",
                         dim ? "opacity-55" : "opacity-100",
+                        "active:scale-[0.99]",
                       ].join(" ")}
                     >
-                      <div className="text-[11px] opacity-80">{s.title}</div>
-                      <div className="text-[15px] font-medium">
+                      {/* soft shine when selected */}
+                      {selected && <div className="shine" />}
+
+                      <div className="serviceTitle">{s.title}</div>
+                      <div className="servicePrice">
                         {typeof s.price === "number" ? `${s.price} ₽` : s.price}
                       </div>
                     </button>
@@ -133,14 +138,14 @@ export default function Page() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Имя"
-                  className="w-full px-2.5 py-2 rounded-lg bg-white/5 border border-white/10 text-[12px]"
+                  className="w-full px-2.5 py-2 rounded-lg bg-white/5 border border-white/10 text-[12px] outline-none"
                 />
                 <textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   placeholder="Комментарий и желаемое время"
                   rows={2}
-                  className="w-full px-2.5 py-2 rounded-lg bg-white/5 border border-white/10 text-[12px]"
+                  className="w-full px-2.5 py-2 rounded-lg bg-white/5 border border-white/10 text-[12px] outline-none resize-none"
                 />
 
                 <label className="inline-block px-3 py-2 rounded-lg bg-white/8 border border-white/10 text-[11px]">
@@ -158,10 +163,10 @@ export default function Page() {
                   <div className="grid grid-cols-3 gap-1.5">
                     {previews.map((src, i) => (
                       <div key={src} className="relative">
-                        <img src={src} className="h-16 w-full object-cover rounded-md" />
+                        <img src={src} className="h-16 w-full object-cover rounded-md border border-white/10" />
                         <button
                           onClick={() => removeImage(i)}
-                          className="absolute top-0.5 right-0.5 h-5 w-5 bg-black/70 rounded-full text-[10px]"
+                          className="absolute top-0.5 right-0.5 h-5 w-5 bg-black/70 rounded-full border border-white/10 text-[10px]"
                         >
                           ✕
                         </button>
@@ -182,7 +187,7 @@ export default function Page() {
         </div>
       </div>
 
-      {/* sticky bottom button: только на шаге 2 */}
+      {/* sticky bottom button (only step 2) */}
       {step === 2 && (
         <div className="fixed bottom-0 inset-x-0 z-20 bg-black/70 backdrop-blur-md border-t border-white/10 p-3">
           <button
@@ -208,6 +213,32 @@ export default function Page() {
             opacity: 1;
             transform: translateY(0);
           }
+        }
+
+        .serviceTitle {
+          font-size: 11px;
+          opacity: 0.78;
+          letter-spacing: 0.01em;
+          font-weight: 400;
+          line-height: 1.2;
+        }
+
+        .servicePrice {
+          margin-top: 2px;
+          font-size: 16px;
+          font-weight: 550;
+          letter-spacing: 0.02em;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .shine {
+          position: absolute;
+          inset: -40px -80px auto auto;
+          width: 180px;
+          height: 180px;
+          background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), rgba(255,255,255,0) 60%);
+          transform: rotate(15deg);
+          pointer-events: none;
         }
       `}</style>
     </main>
