@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
@@ -36,7 +36,7 @@ export default function Page() {
     }
   }, []);
 
-  async function addFiles(files: FileList | File[]) {
+  function addFiles(files: FileList | File[]) {
     const list = Array.from(files).slice(0, 9 - images.length);
     setImages((prev) => [...prev, ...list]);
   }
@@ -46,6 +46,8 @@ export default function Page() {
   }
 
   async function submit() {
+    if (!API) return;
+
     const fd = new FormData();
     fd.append("serviceTitle", service);
     fd.append("clientName", name);
@@ -54,30 +56,37 @@ export default function Page() {
     images.forEach((f) => fd.append("images", f));
 
     setLoading(true);
-    await fetch(`${API}/bookings`, { method: "POST", body: fd });
-    setLoading(false);
-    setStep(3);
+    try {
+      await fetch(`${API}/bookings`, { method: "POST", body: fd });
+      setStep(3);
+    } finally {
+      setLoading(false);
+    }
   }
+
+  const stepTitle = useMemo(() => {
+    if (step === 1) return "Услуга";
+    if (step === 2) return "Детали";
+    return "Готово";
+  }, [step]);
 
   return (
     <main className="min-h-screen relative text-white overflow-hidden">
-      <img
-        src="/bg.jpg"
-        className="absolute inset-0 w-full h-full object-cover z-0"
-      />
-
+      <img src="/bg.jpg" className="absolute inset-0 w-full h-full object-cover z-0" />
       <div className="absolute inset-0 z-0 vignette" />
       <div className="absolute inset-0 z-0 gradientOverlay" />
 
       <div className="relative z-10 max-w-md mx-auto px-3 py-4 space-y-3">
+        {/* pills */}
         <div className="flex gap-2 text-[11px]">
           <div className={`stepPill ${step === 1 ? "active" : ""}`}>Услуга</div>
           <div className={`stepPill ${step === 2 ? "active" : ""}`}>Детали</div>
           <div className={`stepPill ${step === 3 ? "active" : ""}`}>Готово</div>
         </div>
 
+        {/* STEP 1 */}
         {step === 1 && (
-          <div className="space-y-2 animIn">
+          <div className="space-y-1 animIn">
             {SERVICES.map((s) => (
               <button
                 key={s.title}
@@ -96,8 +105,17 @@ export default function Page() {
           </div>
         )}
 
+        {/* STEP 2 */}
         {step === 2 && (
           <div className="space-y-2 animIn">
+            {/* ✅ step 4: sticky bottom actions + back button */}
+            <div className="sectionHead">
+              <div className="sectionTitle">{stepTitle}</div>
+              <button className="backTop" onClick={() => setStep(1)} disabled={loading}>
+                Назад
+              </button>
+            </div>
+
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -113,26 +131,25 @@ export default function Page() {
               rows={2}
             />
 
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={(e) => e.target.files && addFiles(e.target.files)}
-              className="text-[11px] opacity-80"
-            />
+            {/* prettier upload */}
+            <label className="uploadBtn">
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={(e) => e.target.files && addFiles(e.target.files)}
+                className="hiddenInput"
+              />
+              Добавить фото ({images.length}/9)
+              <div className="hint">jpg / png / heic</div>
+            </label>
 
             {images.length > 0 && (
               <div className="grid grid-cols-3 gap-2">
                 {images.map((f, i) => (
                   <div key={i} className="relative">
-                    <img
-                      src={URL.createObjectURL(f)}
-                      className="h-16 w-full object-cover rounded-xl"
-                    />
-                    <button
-                      onClick={() => removeImage(i)}
-                      className="absolute top-1 right-1 h-5 w-5 bg-black/70 rounded-full text-[10px]"
-                    >
+                    <img src={URL.createObjectURL(f)} className="h-16 w-full object-cover rounded-xl" alt="" />
+                    <button onClick={() => removeImage(i)} className="xBtn">
                       ✕
                     </button>
                   </div>
@@ -140,20 +157,35 @@ export default function Page() {
               </div>
             )}
 
-            <button
-              onClick={submit}
-              disabled={loading || !name}
-              className="btn"
-            >
-              {loading ? "Отправка…" : "Отправить"}
-            </button>
+            {/* bottom bar */}
+            <div className="stickyBar">
+              <button className="btnGhost" onClick={() => setStep(1)} disabled={loading}>
+                Назад
+              </button>
+              <button className="btn" onClick={submit} disabled={loading || !name || !service}>
+                {loading ? "Отправка…" : "Отправить"}
+              </button>
+            </div>
           </div>
         )}
 
+        {/* STEP 3 */}
         {step === 3 && (
           <div className="text-center space-y-2 animIn py-3">
             <div className="text-[14px] font-medium">Запись отправлена</div>
             <p className="text-[11px] opacity-70">Мастер свяжется с вами</p>
+
+            <button
+              className="btn mt-2"
+              onClick={() => {
+                setService("");
+                setComment("");
+                setImages([]);
+                setStep(1);
+              }}
+            >
+              Новая запись
+            </button>
           </div>
         )}
       </div>
@@ -192,9 +224,10 @@ export default function Page() {
           opacity: 1;
         }
 
+        /* ✅ tweak: меньше расстояние между карточками, но выше карточки */
         .glassCard {
           width: 100%;
-          padding: 10px 12px;
+          padding: 12px 12px;
           border-radius: 16px;
           background: rgba(0, 0, 0, 0.42);
           border: 1px solid rgba(255, 255, 255, 0.14);
@@ -212,6 +245,26 @@ export default function Page() {
           margin-top: 1px;
         }
 
+        .sectionHead {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+        .sectionTitle {
+          font-size: 12px;
+          opacity: 0.75;
+        }
+        .backTop {
+          font-size: 11px;
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: #fff;
+          opacity: 0.9;
+        }
+
         .input {
           width: 100%;
           padding: 9px 11px;
@@ -222,13 +275,73 @@ export default function Page() {
           color: white;
         }
 
-        .btn {
+        .uploadBtn {
+          display: block;
           width: 100%;
+          padding: 10px 11px;
+          border-radius: 14px;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: white;
+          font-size: 12px;
+          text-align: left;
+          cursor: pointer;
+        }
+        .hiddenInput {
+          display: none;
+        }
+        .hint {
+          margin-top: 3px;
+          font-size: 11px;
+          opacity: 0.7;
+        }
+
+        .xBtn {
+          position: absolute;
+          top: 6px;
+          right: 6px;
+          width: 22px;
+          height: 22px;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.65);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          color: white;
+          font-size: 11px;
+          line-height: 22px;
+          text-align: center;
+        }
+
+        /* ✅ step 4: sticky bottom bar */
+        .stickyBar {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          padding: 10px 14px;
+          display: flex;
+          gap: 10px;
+          background: linear-gradient(to top, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+        }
+
+        .btn {
+          flex: 1;
           padding: 11px;
           border-radius: 16px;
           background: white;
           color: black;
           font-size: 13px;
+        }
+
+        .btnGhost {
+          flex: 1;
+          padding: 11px;
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.08);
+          color: white;
+          font-size: 13px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
         }
 
         .animIn {
