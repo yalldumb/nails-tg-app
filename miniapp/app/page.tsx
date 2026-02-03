@@ -47,8 +47,13 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-white">
-      <div className="mx-auto max-w-md p-4 space-y-4">
+    <main className="min-h-screen relative text-white">
+      <img
+        src="/bg.jpg"
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover -z-10"
+      />
+      <div className="relative z-10 mx-auto max-w-md p-4 space-y-4">
         <h1 className="text-2xl font-semibold">Админка</h1>
 
         <input
