@@ -66,6 +66,63 @@ export default function Page() {
     }
   }, []);
 
+  // ✅ iOS focus: prevent scroll jump (body lock)
+  useEffect(() => {
+    let locked = false;
+    let scrollY = 0;
+
+    function lock() {
+      if (locked) return;
+      locked = true;
+      scrollY = window.scrollY || 0;
+
+      const b = document.body;
+      b.style.position = "fixed";
+      b.style.top = `-${scrollY}px`;
+      b.style.left = "0";
+      b.style.right = "0";
+      b.style.width = "100%";
+      b.style.overflow = "hidden";
+    }
+
+    function unlock() {
+      if (!locked) return;
+      locked = false;
+
+      const b = document.body;
+      b.style.position = "";
+      b.style.top = "";
+      b.style.left = "";
+      b.style.right = "";
+      b.style.width = "";
+      b.style.overflow = "";
+
+      window.scrollTo(0, scrollY);
+    }
+
+    // фокус/блюр на любом инпуте/текстарии
+    function onFocusIn(e: any) {
+      const t = e?.target;
+      if (!t) return;
+      const tag = String(t.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") lock();
+    }
+    function onFocusOut() {
+      // небольшой таймаут чтобы iOS успел закончить анимацию клавиатуры
+      setTimeout(unlock, 60);
+    }
+
+    document.addEventListener("focusin", onFocusIn, true);
+    document.addEventListener("focusout", onFocusOut, true);
+
+    return () => {
+      document.removeEventListener("focusin", onFocusIn, true);
+      document.removeEventListener("focusout", onFocusOut, true);
+      unlock();
+    };
+  }, []);
+
+
   // ✅ haptics (restore)
   function haptic(kind: "light" | "medium" = "light") {
     // @ts-ignore
