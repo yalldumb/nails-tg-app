@@ -610,12 +610,6 @@ export default function Page() {
           will-change: transform;
         }
 
-
-        textarea {
-          resize: none;
-          overscroll-behavior: contain;
-        }
-
 </style>
     </main>
   );
