@@ -23,15 +23,19 @@ function toYmd(d: Date) {
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
+
 function addDays(d: Date, days: number) {
   const x = new Date(d);
   x.setDate(x.getDate() + days);
   return x;
 }
-function ymdToRu(ymd: string) {
-  // YYYY-MM-DD -> DD.MM.YYYY
-  if (!ymd || ymd.length !== 10) return "Выбрать дату";
-  const [y, m, d] = ymd.split("-");
+
+function ymdToDmy(ymd: string) {
+  // "2026-02-04" -> "04.02.2026"
+  if (!ymd || ymd.length < 10) return "";
+  const y = ymd.slice(0, 4);
+  const m = ymd.slice(5, 7);
+  const d = ymd.slice(8, 10);
   return `${d}.${m}.${y}`;
 }
 
@@ -73,7 +77,7 @@ export default function Page() {
   }
 
   function addFiles(files: FileList | File[]) {
-    const list = Array.from(files).slice(0, 10 - images.length);
+    const list = Array.from(files).slice(0, 10 - images.length); // ✅ до 10
     setImages((prev) => [...prev, ...list]);
   }
 
@@ -86,7 +90,7 @@ export default function Page() {
 
     const fd = new FormData();
     fd.append("serviceTitle", service);
-    fd.append("date", date); // только дата
+    fd.append("date", date);
     fd.append("clientName", name);
     if (telegramId) fd.append("telegramId", telegramId);
     fd.append("comment", comment);
@@ -100,6 +104,8 @@ export default function Page() {
       setLoading(false);
     }
   }
+
+  const prettyDate = ymdToDmy(date || minDate);
 
   return (
     <main className="min-h-screen relative text-white overflow-hidden">
@@ -142,28 +148,37 @@ export default function Page() {
           {/* STEP 2 */}
           {uiStep === 2 && (
             <div className="space-y-2 contentPad">
-              {/* 📅 вместо "Дата" + только цифры справа, без правой иконки */}
-              <label className="dateCard pressable">
+              {/* ✅ календарик снаружи + дата строго по центру */}
+              <div className="dateLine">
                 <div className="dateEmoji" aria-hidden="true">📅</div>
-                <div className="dateText">{ymdToRu(date)}</div>
 
-                {/* невидимый input на весь блок, чтобы открывал picker по тапу */}
+                <div className="dateCenter">
+                  <div className="datePill pressable" role="button" aria-label="Выбрать дату">
+                    {prettyDate}
+                  </div>
+
+                  {/* невидимый input ровно поверх pill (чтобы открывался пикер) */}
+                  <input
+                    type="date"
+                    value={date || minDate}
+                    min={minDate}
+                    max={maxDate}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="dateInputHit"
+                    aria-label="Дата"
+                  />
+                </div>
+              </div>
+
+              {/* ✅ рамка только вокруг имени (не на всю ширину) */}
+              <div className="nameRow">
                 <input
-                  type="date"
-                  value={date}
-                  min={minDate}
-                  max={maxDate}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="dateInput"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Имя"
+                  className="nameInput"
                 />
-              </label>
-
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Имя"
-                className="input"
-              />
+              </div>
 
               <textarea
                 value={comment}
@@ -173,7 +188,7 @@ export default function Page() {
                 rows={2}
               />
 
-              {/* скрепка без текста/счётчика */}
+              {/* ✅ только скрепка */}
               <div className="attachRow">
                 <label className="attachBtn pressable" title="Добавить фото">
                   <input
@@ -183,16 +198,7 @@ export default function Page() {
                     onChange={(e) => e.target.files && addFiles(e.target.files)}
                     className="hiddenInput"
                   />
-                  <svg viewBox="0 0 24 24" className="clipIcon" aria-hidden="true">
-                    <path
-                      d="M8.5 12.5l7.2-7.2a3.5 3.5 0 115 5l-9.2 9.2a5.5 5.5 0 11-7.8-7.8l9.3-9.3"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  <span className="clipIcon" aria-hidden="true">📎</span>
                 </label>
               </div>
 
@@ -234,7 +240,7 @@ export default function Page() {
         </div>
       </div>
 
-      {/* Sticky bar (только на шаге 2) */}
+      {/* Sticky bar */}
       <div className={`stickyBar ${uiStep === 2 ? "stickyShow" : "stickyHide"}`} aria-hidden={uiStep !== 2}>
         <div className="stickyInner" />
         <div className="stickyContent">
@@ -248,166 +254,238 @@ export default function Page() {
       </div>
 
       <style jsx global>{`
-        .vignette{
-          background:radial-gradient(ellipse at center, rgba(0,0,0,0) 0%, rgba(0,0,0,.35) 55%, rgba(0,0,0,.78) 100%);
+        .vignette {
+          background: radial-gradient(
+            ellipse at center,
+            rgba(0, 0, 0, 0) 0%,
+            rgba(0, 0, 0, 0.35) 55%,
+            rgba(0, 0, 0, 0.78) 100%
+          );
         }
-        .gradientOverlay{
-          background:linear-gradient(180deg, rgba(0,0,0,.35) 0%, rgba(0,0,0,.12) 42%, rgba(0,0,0,.58) 100%);
-        }
-
-        .pillsRow{ display:flex; gap:8px; }
-        .stepPill{
-          padding:4px 8px;
-          border-radius:999px;
-          background:rgba(255,255,255,.06);
-          border:1px solid rgba(255,255,255,.12);
-          font-size:10px;
-          opacity:.6;
-        }
-        .stepPill.active{
-          background:rgba(255,255,255,.88);
-          color:#000;
-          opacity:1;
+        .gradientOverlay {
+          background: linear-gradient(
+            180deg,
+            rgba(0, 0, 0, 0.35) 0%,
+            rgba(0, 0, 0, 0.12) 42%,
+            rgba(0, 0, 0, 0.58) 100%
+          );
         }
 
-        .stepWrap{
-          transition:opacity 140ms ease, transform 140ms ease;
-          will-change:opacity, transform;
+        .pillsRow {
+          display: flex;
+          gap: 8px;
         }
-        .fadeIn{ opacity:1; transform:none; }
-        .fadeOut{ opacity:0; transform:translateY(6px); }
-
-        .glassCard{
-          width:100%;
-          padding:12px 12px;
-          border-radius:16px;
-          background:rgba(0,0,0,.42);
-          border:1px solid rgba(255,255,255,.14);
-          text-align:left;
+        .stepPill {
+          padding: 4px 8px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          font-size: 10px;
+          opacity: 0.6;
         }
-        .serviceTitle{ font-size:11px; opacity:.75; }
-        .servicePrice{ font-size:14px; font-weight:500; margin-top:1px; }
-
-        .input{
-          width:100%;
-          padding:9px 11px;
-          border-radius:12px;
-          background:rgba(0,0,0,.42);
-          border:1px solid rgba(255,255,255,.14);
-          font-size:12px;
-          color:#fff;
+        .stepPill.active {
+          background: rgba(255, 255, 255, 0.88);
+          color: #000;
+          opacity: 1;
         }
 
-        /* date: emoji left + text only */
-        .dateCard{
-          position:relative;
-          width:100%;
-          display:flex;
-          align-items:center;
-          gap:10px;
-          padding:10px 12px;
-          border-radius:14px;
-          background:rgba(0,0,0,.42);
-          border:1px solid rgba(255,255,255,.14);
+        .stepWrap {
+          transition: opacity 140ms ease, transform 140ms ease;
+          will-change: opacity, transform;
         }
-        .dateEmoji{ font-size:16px; }
-        .dateText{ font-size:13px; opacity:.92; }
-        .dateInput{
-          position:absolute;
-          inset:0;
-          opacity:0;
-          width:100%;
-          height:100%;
-          cursor:pointer;
+        .fadeIn { opacity: 1; transform: translateY(0); }
+        .fadeOut { opacity: 0; transform: translateY(6px); }
+
+        .glassCard {
+          width: 100%;
+          padding: 12px 12px;
+          border-radius: 16px;
+          background: rgba(0, 0, 0, 0.42);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          text-align: left;
         }
-        .dateInput::-webkit-calendar-picker-indicator{
-          opacity:0; /* убираем правую иконку */
+        .serviceTitle {
+          font-size: 11px;
+          opacity: 0.75;
+        }
+        .servicePrice {
+          font-size: 14px;
+          font-weight: 500;
+          margin-top: 1px;
         }
 
-        /* attach: only clip */
-        .attachRow{ display:flex; align-items:center; }
-        .attachBtn{
-          width:36px; height:36px;
-          border-radius:999px;
-          display:grid; place-items:center;
-          background:rgba(255,255,255,.08);
-          border:1px solid rgba(255,255,255,.12);
-          color:#fff;
-          user-select:none;
-          cursor:pointer;
+        /* ✅ date: emoji outside + centered pill */
+        .dateLine{
+          position: relative;
+          height: 44px;
+          display: flex;
+          align-items: center;
         }
-        .clipIcon{ width:18px; height:18px; color:#fff; }
-        .hiddenInput{ display:none; }
-
-        .xBtn{
-          position:absolute; top:6px; right:6px;
-          width:22px; height:22px;
-          border-radius:999px;
-          background:rgba(0,0,0,.65);
-          border:1px solid rgba(255,255,255,.18);
-          color:#fff;
-          font-size:11px;
-          line-height:22px;
-          text-align:center;
+        .dateEmoji{
+          font-size: 18px;
+          opacity: .9;
+          margin-left: 2px;
+          margin-right: 10px;
+          flex: 0 0 auto;
         }
-
-        .contentPad{ padding-bottom:92px; }
-
-        .stickyBar{
-          position:fixed;
-          left:0; right:0; bottom:0;
-          padding:10px 14px;
-          z-index:50;
-          pointer-events:none;
-          opacity:0;
-          transition:opacity 160ms ease;
+        .dateCenter{
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 220px;
+          max-width: calc(100% - 80px);
+          height: 44px;
         }
-        .stickyShow{ opacity:1; pointer-events:auto; }
-        .stickyHide{ opacity:0; pointer-events:none; }
-
-        .stickyInner{
-          position:absolute;
-          inset:0;
-          border-top-left-radius:18px;
-          border-top-right-radius:18px;
-          background:rgba(0,0,0,.62);
-          backdrop-filter:blur(14px);
-          -webkit-backdrop-filter:blur(14px);
+        .datePill{
+          width: 100%;
+          height: 44px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 14px;
+          background: rgba(0,0,0,.42);
+          border: 1px solid rgba(255,255,255,.14);
+          font-size: 13px;
+          opacity: .95;
+          user-select: none;
         }
-        .stickyContent{
-          position:relative;
-          display:flex;
-          gap:10px;
+        .dateInputHit{
+          position: absolute;
+          inset: 0;
+          opacity: 0;
+          cursor: pointer;
+        }
+        .dateInputHit::-webkit-calendar-picker-indicator{
+          opacity: 0;
         }
 
-        .btn{
-          flex:1;
-          padding:11px;
-          border-radius:16px;
-          background:#fff;
-          color:#000;
-          font-size:13px;
+        /* ✅ name: frame only around the name */
+        .nameRow{
+          display: flex;
+          align-items: center;
         }
-        .btnGhost{
-          flex:1;
-          padding:11px;
-          border-radius:16px;
-          background:rgba(255,255,255,.08);
-          color:#fff;
-          font-size:13px;
-          border:1px solid rgba(255,255,255,.12);
+        .nameInput{
+          width: fit-content;
+          max-width: 100%;
+          min-width: 120px;
+          padding: 9px 11px;
+          border-radius: 12px;
+          background: rgba(0,0,0,.42);
+          border: 1px solid rgba(255,255,255,.14);
+          font-size: 12px;
+          color: white;
         }
 
-        .doneTitle{ font-size:15px; font-weight:500; }
-        .doneSub{ font-size:12px; opacity:.7; }
-
-        .pressable{
-          transition:transform 120ms ease, filter 120ms ease;
-          -webkit-tap-highlight-color:transparent;
+        .input {
+          width: 100%;
+          padding: 9px 11px;
+          border-radius: 12px;
+          background: rgba(0, 0, 0, 0.42);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          font-size: 12px;
+          color: white;
         }
-        .pressable:active{
-          transform:scale(.985);
-          filter:brightness(1.05);
+
+        .attachRow{
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .attachBtn {
+          width: 36px;
+          height: 36px;
+          border-radius: 999px;
+          display: grid;
+          place-items: center;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: white;
+          cursor: pointer;
+          user-select: none;
+        }
+        .clipIcon{
+          font-size: 16px;
+          line-height: 1;
+          filter: grayscale(1) contrast(1.1);
+        }
+        .hiddenInput { display: none; }
+
+        .xBtn {
+          position: absolute;
+          top: 6px;
+          right: 6px;
+          width: 22px;
+          height: 22px;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.65);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          color: white;
+          font-size: 11px;
+          line-height: 22px;
+          text-align: center;
+        }
+
+        .contentPad { padding-bottom: 92px; }
+
+        .stickyBar {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          padding: 10px 14px;
+          z-index: 50;
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity 160ms ease;
+          transform: translateZ(0);
+          will-change: opacity, backdrop-filter;
+        }
+        .stickyShow { opacity: 1; pointer-events: auto; }
+        .stickyHide { opacity: 0; pointer-events: none; }
+
+        .stickyInner {
+          position: absolute;
+          inset: 0;
+          border-top-left-radius: 18px;
+          border-top-right-radius: 18px;
+          background: rgba(0, 0, 0, 0.62);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+        }
+        .stickyContent {
+          position: relative;
+          display: flex;
+          gap: 10px;
+        }
+
+        .btn {
+          flex: 1;
+          padding: 11px;
+          border-radius: 16px;
+          background: white;
+          color: black;
+          font-size: 13px;
+        }
+        .btnGhost {
+          flex: 1;
+          padding: 11px;
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.08);
+          color: white;
+          font-size: 13px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .doneTitle { font-size: 15px; font-weight: 500; }
+        .doneSub { font-size: 12px; opacity: 0.7; }
+
+        .pressable {
+          transition: transform 120ms ease, filter 120ms ease;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .pressable:active {
+          transform: scale(0.985);
+          filter: brightness(1.05);
         }
       `}</style>
     </main>
