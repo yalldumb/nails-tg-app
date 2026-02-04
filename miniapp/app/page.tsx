@@ -173,8 +173,8 @@ export default function Page() {
   }
 
   return (
-    <main className="min-h-screen bgRoot relative text-white overflow-hidden">
-      <img src="/bg.jpg" className="fixed inset-0 w-full h-full object-cover z-0 bgFixed bgImg" alt="" />
+    <main className="min-h-screen relative text-white overflow-hidden">
+      <img src="/bg.jpg" className="fixed inset-0 w-full h-full object-cover z-0 bgFixed" alt="" />
       <div className="absolute inset-0 z-0 vignette" />
       <div className="absolute inset-0 z-0 gradientOverlay" />
 
@@ -580,24 +580,6 @@ export default function Page() {
 
         /* меньше дерганий/боуна при появлении клавы */
         html, body { overscroll-behavior: none; }
-
-
-        /* ✅ iOS: fixed background layer (no jump on focus) */
-        .bgRoot::before{
-          content:"";
-          position:fixed;
-          inset:0;
-          background-image:url("/bg.jpg");
-          background-size:cover;
-          background-position:center;
-          background-repeat:no-repeat;
-          z-index:0;
-          transform: translateZ(0);
-          will-change: transform;
-        }
-
-        /* прячем <img>, но оставляем как fallback */
-        .bgImg{ display:none; }
 `}</style>
     </main>
   );
