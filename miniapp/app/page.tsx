@@ -503,6 +503,26 @@ export default function Page() {
           flex-direction:column;
           gap:12px;
         }
+
+
+        /* ✅ dynamic viewport (reduce iOS keyboard jump) */
+        :root{ --app-vh: 100svh; }
+        @supports (height: 100dvh){
+          :root{ --app-vh: 100dvh; }
+        }
+
+        /* Tailwind min-h-screen => 100vh. Перекрываем на svh/dvh */
+        .min-h-screen{ min-height: var(--app-vh) !important; }
+
+        /* фон всегда по высоте app viewport */
+        .bgFixed{
+          top:0;
+          left:0;
+          height: var(--app-vh) !important;
+        }
+
+        /* меньше дерганий/боуна при появлении клавы */
+        html, body { overscroll-behavior: none; }
 `}</style>
     </main>
   );
