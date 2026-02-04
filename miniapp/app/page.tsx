@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
@@ -66,28 +66,20 @@ export default function Page() {
 
   return (
     <main className="min-h-screen relative text-white overflow-hidden">
-      <img src="/bg.jpg" className="absolute inset-0 w-full h-full object-cover z-0" />
+      <img
+        src="/bg.jpg"
+        className="absolute inset-0 w-full h-full object-cover z-0"
+        alt=""
+      />
       <div className="absolute inset-0 z-0 vignette" />
       <div className="absolute inset-0 z-0 gradientOverlay" />
 
       <div className="relative z-10 max-w-md mx-auto px-3 py-4 space-y-3">
-        {/* top bar */}
-        <div className="topBar">
-          {step !== 1 ? (
-            <button className="backBtn" onClick={() => setStep(step - 1 as Step)}>
-              Назад
-            </button>
-          ) : (
-            <div />
-          )}
-
-          <div className="stepsCenter">
-            <div className={`stepPill ${step === 1 ? "active" : ""}`}>Услуга</div>
-            <div className={`stepPill ${step === 2 ? "active" : ""}`}>Детали</div>
-            <div className={`stepPill ${step === 3 ? "active" : ""}`}>Готово</div>
-          </div>
-
-          <div style={{ width: 52 }} />
+        {/* pills */}
+        <div className="pillsRow">
+          <div className={`stepPill ${step === 1 ? "active" : ""}`}>Услуга</div>
+          <div className={`stepPill ${step === 2 ? "active" : ""}`}>Детали</div>
+          <div className={`stepPill ${step === 3 ? "active" : ""}`}>Готово</div>
         </div>
 
         {/* STEP 1 */}
@@ -113,7 +105,7 @@ export default function Page() {
 
         {/* STEP 2 */}
         {step === 2 && (
-          <div className="space-y-2 animIn">
+          <div className="space-y-2 animIn contentPad">
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -129,6 +121,7 @@ export default function Page() {
               rows={2}
             />
 
+            {/* upload (вернули + делаем всегда видимой) */}
             <label className="uploadBtn pressable">
               <input
                 type="file"
@@ -145,18 +138,33 @@ export default function Page() {
               <div className="grid grid-cols-3 gap-2">
                 {images.map((f, i) => (
                   <div key={i} className="relative">
-                    <img src={URL.createObjectURL(f)} className="h-16 w-full object-cover rounded-xl" />
-                    <button onClick={() => removeImage(i)} className="xBtn">✕</button>
+                    <img
+                      src={URL.createObjectURL(f)}
+                      className="h-16 w-full object-cover rounded-xl"
+                      alt=""
+                    />
+                    <button onClick={() => removeImage(i)} className="xBtn pressable">
+                      ✕
+                    </button>
                   </div>
                 ))}
               </div>
             )}
 
+            {/* bottom bar */}
             <div className="stickyBar">
-              <button className="btnGhost" onClick={() => setStep(1)} disabled={loading}>
+              <button
+                className="btnGhost pressable"
+                onClick={() => setStep(1)}
+                disabled={loading}
+              >
                 Назад
               </button>
-              <button className="btn" onClick={submit} disabled={loading || !name}>
+              <button
+                className="btn pressable"
+                onClick={submit}
+                disabled={loading || !name || !service}
+              >
                 {loading ? "Отправка…" : "Отправить"}
               </button>
             </div>
@@ -166,114 +174,204 @@ export default function Page() {
         {/* STEP 3 */}
         {step === 3 && (
           <div className="text-center space-y-2 animIn py-3">
-            <div className="text-[14px] font-medium">Запись отправлена</div>
-            <p className="text-[11px] opacity-70">Мастер свяжется с вами</p>
+            <div className="doneTitle">Запись отправлена</div>
+            <p className="doneSub">Мастер свяжется с вами</p>
+
+            <button
+              className="btn pressable mt-2"
+              onClick={() => {
+                setService("");
+                setComment("");
+                setImages([]);
+                setStep(1);
+              }}
+            >
+              Новая запись
+            </button>
           </div>
         )}
       </div>
 
       <style jsx global>{`
         .vignette {
-          background: radial-gradient(ellipse at center, rgba(0,0,0,0) 0%, rgba(0,0,0,.35) 55%, rgba(0,0,0,.78) 100%);
-        }
-        .gradientOverlay {
-          background: linear-gradient(180deg, rgba(0,0,0,.35) 0%, rgba(0,0,0,.12) 42%, rgba(0,0,0,.58) 100%);
+          background: radial-gradient(
+            ellipse at center,
+            rgba(0, 0, 0, 0) 0%,
+            rgba(0, 0, 0, 0.35) 55%,
+            rgba(0, 0, 0, 0.78) 100%
+          );
         }
 
-        .topBar {
-          display: grid;
-          grid-template-columns: 52px 1fr 52px;
-          align-items: center;
+        .gradientOverlay {
+          background: linear-gradient(
+            180deg,
+            rgba(0, 0, 0, 0.35) 0%,
+            rgba(0, 0, 0, 0.12) 42%,
+            rgba(0, 0, 0, 0.58) 100%
+          );
         }
-        .stepsCenter {
+
+        .pillsRow {
           display: flex;
-          justify-content: center;
-          gap: 6px;
+          gap: 8px;
         }
 
         .stepPill {
-          padding: 6px 12px;
+          padding: 4px 10px;
           border-radius: 999px;
-          background: rgba(255,255,255,.06);
-          border: 1px solid rgba(255,255,255,.14);
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
           font-size: 11px;
-          opacity: .6;
+          opacity: 0.6;
         }
+
         .stepPill.active {
-          background: rgba(255,255,255,.9);
+          background: rgba(255, 255, 255, 0.88);
           color: #000;
           opacity: 1;
         }
 
-        .backBtn {
-          font-size: 11px;
-          padding: 6px 10px;
-          border-radius: 999px;
-          background: rgba(255,255,255,.08);
-          border: 1px solid rgba(255,255,255,.14);
-          color: white;
-        }
-
         .glassCard {
-          padding: 12px;
+          width: 100%;
+          padding: 12px 12px;
           border-radius: 16px;
-          background: rgba(0,0,0,.42);
-          border: 1px solid rgba(255,255,255,.14);
+          background: rgba(0, 0, 0, 0.42);
+          border: 1px solid rgba(255, 255, 255, 0.14);
           text-align: left;
         }
-        .serviceTitle { font-size: 11px; opacity: .75; }
-        .servicePrice { font-size: 14px; font-weight: 500; }
+
+        .serviceTitle {
+          font-size: 11px;
+          opacity: 0.75;
+        }
+
+        .servicePrice {
+          font-size: 14px;
+          font-weight: 500;
+          margin-top: 1px;
+        }
 
         .input {
+          width: 100%;
           padding: 9px 11px;
           border-radius: 12px;
-          background: rgba(0,0,0,.42);
-          border: 1px solid rgba(255,255,255,.14);
+          background: rgba(0, 0, 0, 0.42);
+          border: 1px solid rgba(255, 255, 255, 0.14);
           font-size: 12px;
           color: white;
-          width: 100%;
         }
 
         .uploadBtn {
+          display: block;
+          width: 100%;
           padding: 10px 11px;
           border-radius: 14px;
-          background: rgba(255,255,255,.08);
-          border: 1px solid rgba(255,255,255,.14);
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: white;
           font-size: 12px;
+          text-align: left;
+          cursor: pointer;
         }
-        .hiddenInput { display:none; }
-        .hint { font-size: 11px; opacity: .7; }
+        .hiddenInput {
+          display: none;
+        }
+        .hint {
+          margin-top: 3px;
+          font-size: 11px;
+          opacity: 0.7;
+        }
+
+        .xBtn {
+          position: absolute;
+          top: 6px;
+          right: 6px;
+          width: 22px;
+          height: 22px;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.65);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          color: white;
+          font-size: 11px;
+          line-height: 22px;
+          text-align: center;
+        }
 
         .stickyBar {
           position: fixed;
-          left: 0; right: 0; bottom: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
           padding: 10px 14px;
           display: flex;
           gap: 10px;
-          background: linear-gradient(to top, rgba(0,0,0,.75), rgba(0,0,0,0));
+          background: linear-gradient(
+            to top,
+            rgba(0, 0, 0, 0.75),
+            rgba(0, 0, 0, 0)
+          );
           backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
         }
 
-        .btn { flex:1; padding:11px; border-radius:16px; background:white; color:black; }
-        .btnGhost { flex:1; padding:11px; border-radius:16px; background: rgba(255,255,255,.08); color:white; }
-
-        .pressable {
-          transition: transform 120ms ease, filter 120ms ease;
+        /* чтобы upload/preview не прятались за fixed панелью */
+        .contentPad {
+          padding-bottom: 88px;
         }
-        .pressable:active {
-          transform: scale(.985);
-          filter: brightness(1.05);
+
+        .btn {
+          flex: 1;
+          padding: 11px;
+          border-radius: 16px;
+          background: white;
+          color: black;
+          font-size: 13px;
+        }
+
+        .btnGhost {
+          flex: 1;
+          padding: 11px;
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.08);
+          color: white;
+          font-size: 13px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .doneTitle {
+          font-size: 15px;
+          font-weight: 500;
+        }
+        .doneSub {
+          font-size: 12px;
+          opacity: 0.7;
         }
 
         .animIn {
           animation: animIn 150ms ease-out both;
         }
+
         @keyframes animIn {
-          from { opacity:0; transform: translateY(6px); }
-          to { opacity:1; transform:none; }
+          from {
+            opacity: 0;
+            transform: translateY(6px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        /* luxury press feedback */
+        .pressable {
+          transition: transform 120ms ease, filter 120ms ease;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .pressable:active {
+          transform: scale(0.985);
+          filter: brightness(1.05);
         }
       `}</style>
     </main>
   );
 }
-// vercel-ping 1770131926
