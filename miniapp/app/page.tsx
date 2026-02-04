@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
@@ -17,17 +17,35 @@ const SERVICES = [
 
 type Step = 1 | 2 | 3;
 
+function toYmd(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function addDays(d: Date, days: number) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + days);
+  return x;
+}
+
 export default function Page() {
   const [step, setStep] = useState<Step>(1);
   const [uiStep, setUiStep] = useState<Step>(1);
   const [isFading, setIsFading] = useState(false);
 
   const [service, setService] = useState("");
+  const [date, setDate] = useState<string>(""); // YYYY-MM-DD
   const [name, setName] = useState("");
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [images, setImages] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const today = useMemo(() => new Date(), []);
+  const minDate = useMemo(() => toYmd(today), [today]);
+  const maxDate = useMemo(() => toYmd(addDays(today, 60)), [today]);
 
   useEffect(() => {
     // @ts-ignore
@@ -39,7 +57,6 @@ export default function Page() {
     }
   }, []);
 
-  // Плавный переход между шагами (fade-out -> смена -> fade-in)
   function goTo(next: Step) {
     if (next === uiStep) return;
     setIsFading(true);
@@ -64,6 +81,7 @@ export default function Page() {
 
     const fd = new FormData();
     fd.append("serviceTitle", service);
+    fd.append("date", date); // ✅ только дата
     fd.append("clientName", name);
     if (telegramId) fd.append("telegramId", telegramId);
     fd.append("comment", comment);
@@ -80,11 +98,7 @@ export default function Page() {
 
   return (
     <main className="min-h-screen relative text-white overflow-hidden">
-      <img
-        src="/bg.jpg"
-        className="absolute inset-0 w-full h-full object-cover z-0"
-        alt=""
-      />
+      <img src="/bg.jpg" className="absolute inset-0 w-full h-full object-cover z-0" alt="" />
       <div className="absolute inset-0 z-0 vignette" />
       <div className="absolute inset-0 z-0 gradientOverlay" />
 
@@ -106,6 +120,8 @@ export default function Page() {
                   key={s.title}
                   onClick={() => {
                     setService(s.title);
+                    // ✅ если дата еще не выбрана — ставим сегодня по умолчанию
+                    setDate((prev) => prev || minDate);
                     goTo(2);
                   }}
                   className="glassCard pressable"
@@ -122,6 +138,19 @@ export default function Page() {
           {/* STEP 2 */}
           {uiStep === 2 && (
             <div className="space-y-2 contentPad">
+              {/* ✅ дата записи (без времени) */}
+              <div className="dateRow">
+                <div className="dateLabel">Дата</div>
+                <input
+                  type="date"
+                  value={date}
+                  min={minDate}
+                  max={maxDate}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="dateInput pressable"
+                />
+              </div>
+
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -137,27 +166,28 @@ export default function Page() {
                 rows={2}
               />
 
-              <label className="uploadBtn pressable">
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={(e) => e.target.files && addFiles(e.target.files)}
-                  className="hiddenInput"
-                />
-                Добавить фото ({images.length}/9)
-                <div className="hint">jpg / png / heic</div>
-              </label>
+              {/* ✅ кнопка-скрепка для фото */}
+              <div className="attachRow">
+                <label className="attachBtn pressable" title="Добавить фото">
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={(e) => e.target.files && addFiles(e.target.files)}
+                    className="hiddenInput"
+                  />
+                  📎
+                </label>
+                <div className="attachHint">
+                  {images.length > 0 ? `Фото: ${images.length}/9` : "Добавь фото-примеры (до 9)"}
+                </div>
+              </div>
 
               {images.length > 0 && (
                 <div className="grid grid-cols-3 gap-2">
                   {images.map((f, i) => (
                     <div key={i} className="relative">
-                      <img
-                        src={URL.createObjectURL(f)}
-                        className="h-16 w-full object-cover rounded-xl"
-                        alt=""
-                      />
+                      <img src={URL.createObjectURL(f)} className="h-16 w-full object-cover rounded-xl" alt="" />
                       <button onClick={() => removeImage(i)} className="xBtn pressable">
                         ✕
                       </button>
@@ -178,6 +208,7 @@ export default function Page() {
                 className="btn pressable mt-2"
                 onClick={() => {
                   setService("");
+                  setDate("");
                   setComment("");
                   setImages([]);
                   goTo(1);
@@ -190,25 +221,14 @@ export default function Page() {
         </div>
       </div>
 
-      {/* Sticky bar: держим ВСЕГДА в DOM, чтобы iOS не "ронял" blur на первом кадре */}
-      <div
-        className={`stickyBar ${uiStep === 2 ? "stickyShow" : "stickyHide"}`}
-        aria-hidden={uiStep !== 2}
-      >
+      {/* Sticky bar */}
+      <div className={`stickyBar ${uiStep === 2 ? "stickyShow" : "stickyHide"}`} aria-hidden={uiStep !== 2}>
         <div className="stickyInner" />
         <div className="stickyContent">
-          <button
-            className="btnGhost pressable"
-            onClick={() => goTo(1)}
-            disabled={loading}
-          >
+          <button className="btnGhost pressable" onClick={() => goTo(1)} disabled={loading}>
             Назад
           </button>
-          <button
-            className="btn pressable"
-            onClick={submit}
-            disabled={loading || !name || !service}
-          >
+          <button className="btn pressable" onClick={submit} disabled={loading || !name || !service || !date}>
             {loading ? "Отправка…" : "Отправить"}
           </button>
         </div>
@@ -296,25 +316,60 @@ export default function Page() {
           color: white;
         }
 
-        .uploadBtn {
-          display: block;
-          width: 100%;
-          padding: 10px 11px;
-          border-radius: 14px;
+        /* ✅ date row */
+        .dateRow {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+        .dateLabel {
+          font-size: 12px;
+          opacity: 0.75;
+          padding-left: 2px;
+        }
+        .dateInput {
+          flex: 1;
+          padding: 9px 11px;
+          border-radius: 12px;
+          background: rgba(0, 0, 0, 0.42);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          font-size: 12px;
+          color: white;
+          min-width: 0;
+        }
+        .dateInput::-webkit-calendar-picker-indicator {
+          opacity: 0.85;
+          filter: invert(1);
+        }
+
+        /* ✅ attach row */
+        .attachRow {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .attachBtn {
+          width: 36px;
+          height: 36px;
+          border-radius: 999px;
+          display: grid;
+          place-items: center;
           background: rgba(255, 255, 255, 0.08);
           border: 1px solid rgba(255, 255, 255, 0.12);
           color: white;
-          font-size: 12px;
-          text-align: left;
+          font-size: 16px;
+          line-height: 1;
           cursor: pointer;
+          user-select: none;
         }
+        .attachHint {
+          font-size: 11px;
+          opacity: 0.75;
+        }
+
         .hiddenInput {
           display: none;
-        }
-        .hint {
-          margin-top: 3px;
-          font-size: 11px;
-          opacity: 0.7;
         }
 
         .xBtn {
@@ -332,12 +387,10 @@ export default function Page() {
           text-align: center;
         }
 
-        /* всегда оставляем место под fixed бар, чтобы ничего не прыгало */
         .contentPad {
           padding-bottom: 92px;
         }
 
-        /* ✅ фикс "пропадает матовость на 1 кадр": бар ВСЕГДА в DOM + есть темный fallback без blur */
         .stickyBar {
           position: fixed;
           left: 0;
@@ -360,22 +413,14 @@ export default function Page() {
           pointer-events: none;
         }
 
-        /* слой с blur + fallback матовости */
         .stickyInner {
           position: absolute;
           inset: 0;
           border-top-left-radius: 18px;
           border-top-right-radius: 18px;
-
-          /* fallback матовость, даже если blur на кадр отвалится */
           background: rgba(0, 0, 0, 0.62);
-
-          /* сам blur */
           backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
-
-          /* легкий верхний градиент */
-          mask-image: linear-gradient(to top, rgba(0,0,0,1), rgba(0,0,0,0.9));
         }
 
         .stickyContent {
