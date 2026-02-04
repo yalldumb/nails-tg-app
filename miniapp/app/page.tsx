@@ -328,6 +328,22 @@ export default function Page() {
           );
         }
 
+
+        /* bgFixed: prevent iOS TG keyboard jump */
+        .bgFixed {
+          position: fixed !important;
+          inset: 0 !important;
+          width: 100vw;
+          height: 100svh;
+          transform: translateZ(0);
+          backface-visibility: hidden;
+          will-change: transform;
+          pointer-events: none;
+        }
+        @supports (height: 100dvh) {
+          .bgFixed { height: 100dvh; }
+        }
+
         /* ✅ (1) pills bigger + bold */
         .pillsRow {
           display: flex;
