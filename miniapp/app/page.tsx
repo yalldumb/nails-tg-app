@@ -23,14 +23,24 @@ function toYmd(d: Date) {
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
+
 function addDays(d: Date, days: number) {
   const x = new Date(d);
   x.setDate(x.getDate() + days);
   return x;
 }
 
+function formatRuDate(ymd: string) {
+  // ymd: YYYY-MM-DD -> DD.MM.YYYY
+  const [y, m, d] = ymd.split("-");
+  if (!y || !m || !d) return ymd;
+  return `${d}.${m}.${y}`;
+}
+
 export default function Page() {
   const [step, setStep] = useState<Step>(1);
+  const [uiStep, setUiStep] = useState<Step>(1);
+  const [isFading, setIsFading] = useState(false);
 
   const [service, setService] = useState("");
   const [date, setDate] = useState<string>(""); // YYYY-MM-DD
@@ -39,7 +49,6 @@ export default function Page() {
   const [comment, setComment] = useState("");
   const [images, setImages] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pressing, setPressing] = useState(false);
 
   const today = useMemo(() => new Date(), []);
   const minDate = useMemo(() => toYmd(today), [today]);
@@ -55,10 +64,14 @@ export default function Page() {
     }
   }, []);
 
-  function haptic(type: "light" | "medium" = "light") {
-    // @ts-ignore
-    const tg = window?.Telegram?.WebApp;
-    tg?.HapticFeedback?.impactOccurred(type);
+  function goTo(next: Step) {
+    if (next === uiStep) return;
+    setIsFading(true);
+    setTimeout(() => {
+      setUiStep(next);
+      setStep(next);
+      setIsFading(false);
+    }, 140);
   }
 
   function addFiles(files: FileList | File[]) {
@@ -71,11 +84,7 @@ export default function Page() {
   }
 
   async function submit() {
-    if (!API || loading) return;
-
-    haptic("medium");
-    setPressing(true);
-    setLoading(true);
+    if (!API) return;
 
     const fd = new FormData();
     fd.append("serviceTitle", service);
@@ -85,12 +94,12 @@ export default function Page() {
     fd.append("comment", comment);
     images.forEach((f) => fd.append("images", f));
 
+    setLoading(true);
     try {
       await fetch(`${API}/bookings`, { method: "POST", body: fd });
-      setStep(3);
+      goTo(3);
     } finally {
       setLoading(false);
-      setTimeout(() => setPressing(false), 160);
     }
   }
 
@@ -103,140 +112,142 @@ export default function Page() {
       <div className="relative z-10 max-w-md mx-auto px-3 py-4 space-y-3">
         {/* pills */}
         <div className="pillsRow">
-          <div className={`stepPill ${step === 1 ? "active" : ""}`}>Услуга</div>
-          <div className={`stepPill ${step === 2 ? "active" : ""}`}>Детали</div>
-          <div className={`stepPill ${step === 3 ? "active" : ""}`}>Готово</div>
+          <div className={`stepPill ${uiStep === 1 ? "active" : ""}`}>Услуга</div>
+          <div className={`stepPill ${uiStep === 2 ? "active" : ""}`}>Детали</div>
+          <div className={`stepPill ${uiStep === 3 ? "active" : ""}`}>Готово</div>
         </div>
 
-        {/* STEP 1 */}
-        {step === 1 && (
-          <div className="space-y-1">
-            {SERVICES.map((s) => (
+        {/* CONTENT (fade transition) */}
+        <div className={`stepWrap ${isFading ? "fadeOut" : "fadeIn"}`}>
+          {/* STEP 1 */}
+          {uiStep === 1 && (
+            <div className="space-y-1">
+              {SERVICES.map((s) => (
+                <button
+                  key={s.title}
+                  onClick={() => {
+                    setService(s.title);
+                    setDate((prev) => prev || minDate);
+                    goTo(2);
+                  }}
+                  className="glassCard pressable"
+                >
+                  <div className="serviceTitle">{s.title}</div>
+                  <div className="servicePrice">
+                    {typeof s.price === "number" ? `${s.price} ₽` : s.price}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* STEP 2 */}
+          {uiStep === 2 && (
+            <div className="space-y-3 contentPad">
+              {/* ✅ ДАТА: календарик СНАРУЖИ, дата по центру в своей рамке */}
+              <div className="dateCenterRow">
+                <div className="calIcon" aria-hidden="true">📅</div>
+
+                <div className="datePill pressable">
+                  <input
+                    type="date"
+                    value={date}
+                    min={minDate}
+                    max={maxDate}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="dateNative"
+                    aria-label="Дата записи"
+                  />
+                  {/* fallback визуально (если iOS рисует текст странно) */}
+                  <div className="dateText" aria-hidden="true">
+                    {date ? formatRuDate(date) : ""}
+                  </div>
+                </div>
+              </div>
+
+              {/* ✅ ИМЯ: только имя в рамке (не на всю строку) */}
+              <div className="nameRow">
+                <div className="namePill">
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="nameInput"
+                    placeholder="Имя"
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Комментарий и желаемое время"
+                className="input"
+                rows={2}
+              />
+
+              {/* 📎 только скрепка (без текста/счетчиков) */}
+              <label className="attachBtn pressable" title="Добавить фото">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={(e) => e.target.files && addFiles(e.target.files)}
+                  className="hiddenInput"
+                />
+                <span className="paperclip" aria-hidden="true">📎</span>
+              </label>
+
+              {images.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {images.map((f, i) => (
+                    <div key={i} className="relative">
+                      <img src={URL.createObjectURL(f)} className="h-16 w-full object-cover rounded-xl" alt="" />
+                      <button onClick={() => removeImage(i)} className="xBtn pressable" aria-label="Удалить фото">
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* STEP 3 */}
+          {uiStep === 3 && (
+            <div className="text-center space-y-2 py-3">
+              <div className="doneTitle">Запись отправлена</div>
+              <p className="doneSub">Мастер свяжется с вами</p>
+
               <button
-                key={s.title}
-                className="glassCard pressable"
+                className="btn pressable mt-2"
                 onClick={() => {
-                  haptic();
-                  setService(s.title);
-                  setDate((prev) => prev || minDate);
-                  setStep(2);
+                  setService("");
+                  setDate("");
+                  setComment("");
+                  setImages([]);
+                  goTo(1);
                 }}
               >
-                <div className="serviceTitle">{s.title}</div>
-                <div className="servicePrice">
-                  {typeof s.price === "number" ? `${s.price} ₽` : s.price}
-                </div>
+                Новая запись
               </button>
-            ))}
-          </div>
-        )}
-
-        {/* STEP 2 */}
-        {step === 2 && (
-          <div className="space-y-3 contentPad">
-            {/* date: emoji слева (вне рамки), дата по центру */}
-            <div className="dateRow">
-              <div className="dateEmoji" aria-hidden>📅</div>
-              <input
-                type="date"
-                value={date}
-                min={minDate}
-                max={maxDate}
-                onChange={(e) => setDate(e.target.value)}
-                className="dateInput pressable"
-              />
             </div>
-
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Имя"
-              className="input"
-            />
-
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Комментарий и желаемое время"
-              className="input"
-              rows={2}
-            />
-
-            {/* только скрепка, без текста и счетчиков */}
-            <label className="attachBtn pressable" title="Добавить фото">
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={(e) => e.target.files && addFiles(e.target.files)}
-                className="hiddenInput"
-              />
-              <span className="clip" aria-hidden>📎</span>
-            </label>
-
-            {images.length > 0 && (
-              <div className="grid grid-cols-3 gap-2">
-                {images.map((f, i) => (
-                  <div key={i} className="relative">
-                    <img src={URL.createObjectURL(f)} className="h-16 w-full object-cover rounded-xl" alt="" />
-                    <button onClick={() => removeImage(i)} className="xBtn pressable" aria-label="Удалить фото">
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* STEP 3 */}
-        {step === 3 && (
-          <div className="text-center space-y-2 py-3">
-            <div className="doneTitle">Запись отправлена</div>
-            <p className="doneSub">Мастер свяжется с вами</p>
-
-            <button
-              className="btn pressable mt-2"
-              onClick={() => {
-                setService("");
-                setDate("");
-                setComment("");
-                setImages([]);
-                setStep(1);
-              }}
-            >
-              Новая запись
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* sticky actions */}
-      {step === 2 && (
-        <div className="stickyBar">
-          <div className="stickyInner" />
-          <div className="stickyContent">
-            <button
-              className="btnGhost pressable"
-              onClick={() => {
-                haptic();
-                setStep(1);
-              }}
-              disabled={loading}
-            >
-              Назад
-            </button>
-
-            <button
-              className={`btn pressable ${pressing ? "btnPress" : ""}`}
-              onClick={submit}
-              disabled={loading || !name || !service || !date}
-            >
-              {loading ? "Отправка…" : "Отправить"}
-            </button>
-          </div>
+      {/* Sticky bar */}
+      <div className={`stickyBar ${uiStep === 2 ? "stickyShow" : "stickyHide"}`} aria-hidden={uiStep !== 2}>
+        <div className="stickyInner" />
+        <div className="stickyContent">
+          <button className="btnGhost pressable" onClick={() => goTo(1)} disabled={loading}>
+            Назад
+          </button>
+          <button className="btn pressable" onClick={submit} disabled={loading || !name || !service || !date}>
+            {loading ? "Отправка…" : "Отправить"}
+          </button>
         </div>
-      )}
+      </div>
 
       <style jsx global>{`
         .vignette {
@@ -247,6 +258,7 @@ export default function Page() {
             rgba(0, 0, 0, 0.78) 100%
           );
         }
+
         .gradientOverlay {
           background: linear-gradient(
             180deg,
@@ -260,6 +272,7 @@ export default function Page() {
           display: flex;
           gap: 8px;
         }
+
         .stepPill {
           padding: 4px 8px;
           border-radius: 999px;
@@ -268,76 +281,140 @@ export default function Page() {
           font-size: 10px;
           opacity: 0.6;
         }
+
         .stepPill.active {
           background: rgba(255, 255, 255, 0.88);
           color: #000;
           opacity: 1;
         }
 
+        .stepWrap {
+          transition: opacity 140ms ease, transform 140ms ease;
+          will-change: opacity, transform;
+        }
+        .fadeIn {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .fadeOut {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+
         .glassCard {
           width: 100%;
           padding: 12px 12px;
           border-radius: 16px;
-          background: rgba(0,0,0,.45);
-          border: 1px solid rgba(255,255,255,.14);
+          background: rgba(0, 0, 0, 0.42);
+          border: 1px solid rgba(255, 255, 255, 0.14);
           text-align: left;
         }
-        .serviceTitle { font-size: 12px; opacity: .75; }
-        .servicePrice { font-size: 14px; font-weight: 500; margin-top: 1px; }
+
+        .serviceTitle {
+          font-size: 11px;
+          opacity: 0.75;
+        }
+
+        .servicePrice {
+          font-size: 14px;
+          font-weight: 500;
+          margin-top: 1px;
+        }
 
         .input {
           width: 100%;
-          padding: 10px;
+          padding: 9px 11px;
           border-radius: 12px;
-          background: rgba(0,0,0,.45);
-          border: 1px solid rgba(255,255,255,.14);
+          background: rgba(0, 0, 0, 0.42);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          font-size: 12px;
           color: white;
-          font-size: 13px;
         }
 
-        /* date: emoji слева, дата по центру внутри инпута */
-        .dateRow {
+        /* ✅ DATE centered pill */
+        .dateCenterRow {
           display: flex;
           align-items: center;
+          justify-content: center;
           gap: 10px;
         }
-        .dateEmoji {
-          width: 28px;
+        .calIcon {
+          font-size: 18px;
+          line-height: 1;
+          opacity: 0.95;
+          transform: translateY(1px);
+          user-select: none;
+        }
+        .datePill {
+          position: relative;
+          width: 190px;
+          height: 38px;
+          border-radius: 14px;
+          background: rgba(0, 0, 0, 0.42);
+          border: 1px solid rgba(255, 255, 255, 0.14);
           display: grid;
           place-items: center;
-          font-size: 16px;
-          opacity: .95;
+          overflow: hidden;
         }
-        .dateInput {
-          flex: 1;
-          padding: 10px;
-          border-radius: 12px;
-          background: rgba(0,0,0,.45);
-          border: 1px solid rgba(255,255,255,.14);
-          color: white;
-          font-size: 13px;
-          text-align: center;
-          min-width: 0;
+        .dateNative {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          opacity: 0; /* кликается, но текст рисуем сами */
         }
-        .dateInput::-webkit-calendar-picker-indicator {
-          display: none; /* убираем правый календарик */
+        .dateText {
+          font-size: 14px;
+          font-weight: 500;
+          opacity: 0.95;
+          letter-spacing: 0.2px;
         }
 
+        /* ✅ NAME only in small pill */
+        .nameRow {
+          display: flex;
+          justify-content: flex-start;
+        }
+        .namePill {
+          display: inline-flex;
+          align-items: center;
+          padding: 8px 12px;
+          border-radius: 14px;
+          background: rgba(0, 0, 0, 0.42);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          max-width: 72%;
+        }
+        .nameInput {
+          background: transparent;
+          border: none;
+          outline: none;
+          color: white;
+          font-size: 13px;
+          width: 100%;
+          min-width: 80px;
+        }
+
+        /* 📎 */
         .attachBtn {
-          width: 36px;
-          height: 36px;
+          width: 38px;
+          height: 38px;
           border-radius: 999px;
           display: grid;
           place-items: center;
-          background: rgba(255,255,255,.08);
-          border: 1px solid rgba(255,255,255,.14);
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: white;
+          cursor: pointer;
           user-select: none;
         }
-        .clip {
+        .paperclip {
           font-size: 18px;
-          filter: grayscale(1) contrast(1.15);
+          line-height: 1;
+          filter: grayscale(1) contrast(1.05);
         }
-        .hiddenInput { display: none; }
+        .hiddenInput {
+          display: none;
+        }
 
         .xBtn {
           position: absolute;
@@ -354,23 +431,40 @@ export default function Page() {
           text-align: center;
         }
 
-        .contentPad { padding-bottom: 92px; }
+        .contentPad {
+          padding-bottom: 92px;
+        }
 
         .stickyBar {
           position: fixed;
           left: 0;
           right: 0;
           bottom: 0;
-          padding: 12px;
+          padding: 10px 14px;
           z-index: 50;
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity 160ms ease;
         }
+        .stickyShow {
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .stickyHide {
+          opacity: 0;
+          pointer-events: none;
+        }
+
         .stickyInner {
           position: absolute;
           inset: 0;
-          background: rgba(0,0,0,.62);
+          border-top-left-radius: 18px;
+          border-top-right-radius: 18px;
+          background: rgba(0, 0, 0, 0.62);
           backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
         }
+
         .stickyContent {
           position: relative;
           display: flex;
@@ -379,30 +473,40 @@ export default function Page() {
 
         .btn {
           flex: 1;
-          padding: 14px;
-          border-radius: 18px;
+          padding: 11px;
+          border-radius: 16px;
           background: white;
           color: black;
-          font-size: 14px;
-          transition: transform 160ms ease;
+          font-size: 13px;
         }
-        .btnPress { transform: scale(0.96); }
 
         .btnGhost {
           flex: 1;
-          padding: 14px;
-          border-radius: 18px;
-          background: rgba(255,255,255,.08);
+          padding: 11px;
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.08);
           color: white;
-          font-size: 14px;
-          border: 1px solid rgba(255,255,255,.14);
+          font-size: 13px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
         }
 
-        .doneTitle { font-size: 15px; font-weight: 500; }
-        .doneSub { font-size: 12px; opacity: .7; }
+        .doneTitle {
+          font-size: 15px;
+          font-weight: 500;
+        }
+        .doneSub {
+          font-size: 12px;
+          opacity: 0.7;
+        }
 
-        .pressable { -webkit-tap-highlight-color: transparent; }
-        .pressable:active { transform: scale(.98); }
+        .pressable {
+          transition: transform 120ms ease, filter 120ms ease;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .pressable:active {
+          transform: scale(0.985);
+          filter: brightness(1.05);
+        }
       `}</style>
     </main>
   );
