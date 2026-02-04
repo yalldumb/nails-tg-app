@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
@@ -30,40 +30,11 @@ function addDays(d: Date, days: number) {
   return x;
 }
 
-function formatRuDate(ymd: string) {
-  const [y, m, d] = ymd.split("-");
-  if (!y || !m || !d) return ymd;
-  return `${d}.${m}.${y}`;
-}
-
-/** толще, дороже: простой paperclip */
-function PaperclipIcon(props: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={props.className}
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path
-        d="M9.2 12.9l6.6-6.6a3.6 3.6 0 115.1 5.1l-8.2 8.2a5.6 5.6 0 01-7.9-7.9l8.6-8.6"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M8.4 11.7l7.4-7.4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity="0.9"
-      />
-    </svg>
-  );
+function formatRu(ymd: string) {
+  // ymd: YYYY-MM-DD -> DD.MM.YYYY
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
+  if (!m) return ymd;
+  return `${m[3]}.${m[2]}.${m[1]}`;
 }
 
 export default function Page() {
@@ -72,14 +43,12 @@ export default function Page() {
   const [isFading, setIsFading] = useState(false);
 
   const [service, setService] = useState("");
-  const [date, setDate] = useState<string>("");
+  const [date, setDate] = useState<string>(""); // YYYY-MM-DD
   const [name, setName] = useState("");
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [images, setImages] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
-
-  const tgRef = useRef<any>(null);
 
   const today = useMemo(() => new Date(), []);
   const minDate = useMemo(() => toYmd(today), [today]);
@@ -88,8 +57,6 @@ export default function Page() {
   useEffect(() => {
     // @ts-ignore
     const tg = window?.Telegram?.WebApp;
-    tgRef.current = tg || null;
-
     if (tg?.initDataUnsafe?.user) {
       const u = tg.initDataUnsafe.user;
       setName(u.first_name || "");
@@ -97,12 +64,12 @@ export default function Page() {
     }
   }, []);
 
-  function haptic(type: "light" | "medium" | "heavy" = "light") {
-    const tg = tgRef.current;
-    const hf = tg?.HapticFeedback;
-    if (!hf) return;
+  // ✅ haptics (restore)
+  function haptic(kind: "light" | "medium" = "light") {
+    // @ts-ignore
+    const tg = window?.Telegram?.WebApp;
     try {
-      hf.impactOccurred?.(type);
+      tg?.HapticFeedback?.impactOccurred?.(kind);
     } catch {}
   }
 
@@ -117,13 +84,11 @@ export default function Page() {
   }
 
   function addFiles(files: FileList | File[]) {
-    const list = Array.from(files).slice(0, 10 - images.length);
-    if (list.length > 0) haptic("light");
+    const list = Array.from(files).slice(0, 10 - images.length); // ✅ до 10
     setImages((prev) => [...prev, ...list]);
   }
 
   function removeImage(i: number) {
-    haptic("light");
     setImages((prev) => prev.filter((_, idx) => idx !== i));
   }
 
@@ -138,10 +103,10 @@ export default function Page() {
     fd.append("comment", comment);
     images.forEach((f) => fd.append("images", f));
 
-    haptic("medium");
     setLoading(true);
     try {
       await fetch(`${API}/bookings`, { method: "POST", body: fd });
+      haptic("medium");
       goTo(3);
     } finally {
       setLoading(false);
@@ -150,22 +115,21 @@ export default function Page() {
 
   return (
     <main className="min-h-screen relative text-white overflow-hidden">
-      <img
-        src="/bg.jpg"
-        className="absolute inset-0 w-full h-full object-cover z-0"
-        alt=""
-      />
+      <img src="/bg.jpg" className="absolute inset-0 w-full h-full object-cover z-0" alt="" />
       <div className="absolute inset-0 z-0 vignette" />
       <div className="absolute inset-0 z-0 gradientOverlay" />
 
       <div className="relative z-10 max-w-md mx-auto px-3 py-4 space-y-3">
+        {/* pills */}
         <div className="pillsRow">
           <div className={`stepPill ${uiStep === 1 ? "active" : ""}`}>Услуга</div>
           <div className={`stepPill ${uiStep === 2 ? "active" : ""}`}>Детали</div>
           <div className={`stepPill ${uiStep === 3 ? "active" : ""}`}>Готово</div>
         </div>
 
+        {/* CONTENT (fade transition) */}
         <div className={`stepWrap ${isFading ? "fadeOut" : "fadeIn"}`}>
+          {/* STEP 1 */}
           {uiStep === 1 && (
             <div className="space-y-1">
               {SERVICES.map((s) => (
@@ -188,42 +152,13 @@ export default function Page() {
             </div>
           )}
 
+          {/* STEP 2 */}
           {uiStep === 2 && (
-            <div className="space-y-3 contentPad">
-              <div className="dateCenterRow">
-                <div className="calIcon" aria-hidden="true">
-                  📅
-                </div>
-
-                <div className="datePill pressable">
-                  <input
-                    type="date"
-                    value={date}
-                    min={minDate}
-                    max={maxDate}
-                    onChange={(e) => {
-                      haptic("light");
-                      setDate(e.target.value);
-                    }}
-                    className="dateNative"
-                    aria-label="Дата записи"
-                  />
-                  <div className="dateText" aria-hidden="true">
-                    {date ? formatRuDate(date) : ""}
-                  </div>
-                </div>
-              </div>
-
-              <div className="nameRowCenter">
-                <div className="namePill">
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="nameInput"
-                    placeholder="Имя"
-                    autoComplete="off"
-                  />
-                </div>
+            <div className="space-y-2 contentPad">
+              {/* ✅ дата по центру над именем, без эмодзи */}
+              <div className="centerStack">
+                <div className="datePill">{formatRu(date)}</div>
+                <div className="namePill">{name || " "}</div>
               </div>
 
               <textarea
@@ -234,12 +169,8 @@ export default function Page() {
                 rows={2}
               />
 
-              {/* ✅ теперь SVG вместо эмодзи */}
-              <label
-                className="attachBtn pressable"
-                title="Добавить фото"
-                onClick={() => haptic("light")}
-              >
+              {/* ✅ скрепка-иконка (пока emoji оставляем, svg сделаем отдельным шагом как ты просил раньше) */}
+              <label className="attachBtn pressable" title="Добавить фото">
                 <input
                   type="file"
                   multiple
@@ -247,22 +178,20 @@ export default function Page() {
                   onChange={(e) => e.target.files && addFiles(e.target.files)}
                   className="hiddenInput"
                 />
-                <PaperclipIcon className="paperclipSvg" />
+                📎
               </label>
 
               {images.length > 0 && (
                 <div className="grid grid-cols-3 gap-2">
                   {images.map((f, i) => (
                     <div key={i} className="relative">
-                      <img
-                        src={URL.createObjectURL(f)}
-                        className="h-16 w-full object-cover rounded-xl"
-                        alt=""
-                      />
+                      <img src={URL.createObjectURL(f)} className="h-16 w-full object-cover rounded-xl" alt="" />
                       <button
-                        onClick={() => removeImage(i)}
+                        onClick={() => {
+                          haptic("light");
+                          removeImage(i);
+                        }}
                         className="xBtn pressable"
-                        aria-label="Удалить фото"
                       >
                         ✕
                       </button>
@@ -273,6 +202,7 @@ export default function Page() {
             </div>
           )}
 
+          {/* STEP 3 */}
           {uiStep === 3 && (
             <div className="text-center space-y-2 py-3">
               <div className="doneTitle">Запись отправлена</div>
@@ -296,10 +226,8 @@ export default function Page() {
         </div>
       </div>
 
-      <div
-        className={`stickyBar ${uiStep === 2 ? "stickyShow" : "stickyHide"}`}
-        aria-hidden={uiStep !== 2}
-      >
+      {/* Sticky bar */}
+      <div className={`stickyBar ${uiStep === 2 ? "stickyShow" : "stickyHide"}`} aria-hidden={uiStep !== 2}>
         <div className="stickyInner" />
         <div className="stickyContent">
           <button
@@ -315,7 +243,7 @@ export default function Page() {
           <button
             className="btn pressable"
             onClick={submit}
-            disabled={loading || !name || !service || !date}
+            disabled={loading || !service || !date}
           >
             {loading ? "Отправка…" : "Отправить"}
           </button>
@@ -341,20 +269,24 @@ export default function Page() {
           );
         }
 
+        /* ✅ (1) pills bigger + bold */
         .pillsRow {
           display: flex;
-          gap: 8px;
+          gap: 10px;
         }
+
         .stepPill {
-          padding: 4px 8px;
+          padding: 6px 12px;
           border-radius: 999px;
           background: rgba(255, 255, 255, 0.06);
           border: 1px solid rgba(255, 255, 255, 0.12);
-          font-size: 10px;
+          font-size: 12px;
+          font-weight: 700;
           opacity: 0.6;
         }
+
         .stepPill.active {
-          background: rgba(255, 255, 255, 0.88);
+          background: rgba(255, 255, 255, 0.90);
           color: #000;
           opacity: 1;
         }
@@ -380,10 +312,12 @@ export default function Page() {
           border: 1px solid rgba(255, 255, 255, 0.14);
           text-align: left;
         }
+
         .serviceTitle {
           font-size: 11px;
           opacity: 0.75;
         }
+
         .servicePrice {
           font-size: 14px;
           font-weight: 500;
@@ -392,7 +326,7 @@ export default function Page() {
 
         .input {
           width: 100%;
-          padding: 9px 11px;
+          padding: 10px 11px;
           border-radius: 12px;
           background: rgba(0, 0, 0, 0.42);
           border: 1px solid rgba(255, 255, 255, 0.14);
@@ -400,65 +334,35 @@ export default function Page() {
           color: white;
         }
 
-        .dateCenterRow {
+        /* ✅ (2) date centered above name, no emoji */
+        .centerStack {
           display: flex;
+          flex-direction: column;
           align-items: center;
-          justify-content: center;
           gap: 10px;
-        }
-        .calIcon {
-          font-size: 18px;
-          line-height: 1;
-          opacity: 0.95;
-          transform: translateY(1px);
-          user-select: none;
-        }
-        .datePill {
-          position: relative;
-          width: 190px;
-          height: 38px;
-          border-radius: 14px;
-          background: rgba(0, 0, 0, 0.42);
-          border: 1px solid rgba(255, 255, 255, 0.14);
-          display: grid;
-          place-items: center;
-          overflow: hidden;
-        }
-        .dateNative {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          opacity: 0;
-        }
-        .dateText {
-          font-size: 14px;
-          font-weight: 500;
-          opacity: 0.95;
-          letter-spacing: 0.2px;
+          margin-top: 4px;
+          margin-bottom: 2px;
         }
 
-        .nameRowCenter {
-          display: flex;
-          justify-content: center;
+        .datePill {
+          padding: 10px 14px;
+          border-radius: 16px;
+          background: rgba(0,0,0,.45);
+          border: 1px solid rgba(255,255,255,.14);
+          font-size: 14px;
+          font-weight: 700;
+          width: min(320px, 100%);
+          text-align: center;
         }
+
         .namePill {
-          display: inline-flex;
-          align-items: center;
-          padding: 8px 12px;
-          border-radius: 14px;
-          background: rgba(0, 0, 0, 0.42);
-          border: 1px solid rgba(255, 255, 255, 0.14);
-          max-width: 72%;
-        }
-        .nameInput {
-          background: transparent;
-          border: none;
-          outline: none;
-          color: white;
-          font-size: 13px;
-          width: 100%;
-          min-width: 80px;
+          padding: 10px 14px;
+          border-radius: 16px;
+          background: rgba(0,0,0,.45);
+          border: 1px solid rgba(255,255,255,.14);
+          font-size: 14px;
+          font-weight: 600;
+          width: min(320px, 100%);
           text-align: center;
         }
 
@@ -468,18 +372,12 @@ export default function Page() {
           border-radius: 999px;
           display: grid;
           place-items: center;
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          color: white;
-          cursor: pointer;
+          background: rgba(255,255,255,.08);
+          border: 1px solid rgba(255,255,255,.14);
+          font-size: 16px;
           user-select: none;
         }
-        .paperclipSvg {
-          width: 18px;
-          height: 18px;
-          display: block;
-          color: rgba(255, 255, 255, 0.92);
-        }
+
         .hiddenInput {
           display: none;
         }
@@ -508,7 +406,7 @@ export default function Page() {
           left: 0;
           right: 0;
           bottom: 0;
-          padding: 10px 14px;
+          padding: 12px 14px;
           z-index: 50;
           pointer-events: none;
           opacity: 0;
@@ -522,6 +420,7 @@ export default function Page() {
           opacity: 0;
           pointer-events: none;
         }
+
         .stickyInner {
           position: absolute;
           inset: 0;
@@ -531,6 +430,7 @@ export default function Page() {
           backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
         }
+
         .stickyContent {
           position: relative;
           display: flex;
@@ -539,20 +439,22 @@ export default function Page() {
 
         .btn {
           flex: 1;
-          padding: 11px;
-          border-radius: 16px;
+          padding: 14px;
+          border-radius: 18px;
           background: white;
           color: black;
-          font-size: 13px;
+          font-size: 14px;
+          transition: transform 160ms ease;
         }
+
         .btnGhost {
           flex: 1;
-          padding: 11px;
-          border-radius: 16px;
-          background: rgba(255, 255, 255, 0.08);
+          padding: 14px;
+          border-radius: 18px;
+          background: rgba(255,255,255,.08);
           color: white;
-          font-size: 13px;
-          border: 1px solid rgba(255, 255, 255, 0.12);
+          font-size: 14px;
+          border: 1px solid rgba(255,255,255,.14);
         }
 
         .doneTitle {
@@ -565,12 +467,10 @@ export default function Page() {
         }
 
         .pressable {
-          transition: transform 120ms ease, filter 120ms ease;
           -webkit-tap-highlight-color: transparent;
         }
         .pressable:active {
-          transform: scale(0.985);
-          filter: brightness(1.05);
+          transform: scale(.98);
         }
       `}</style>
     </main>
