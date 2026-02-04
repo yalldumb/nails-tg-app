@@ -36,13 +36,43 @@ function formatRuDate(ymd: string) {
   return `${d}.${m}.${y}`;
 }
 
+/** толще, дороже: простой paperclip */
+function PaperclipIcon(props: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={props.className}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M9.2 12.9l6.6-6.6a3.6 3.6 0 115.1 5.1l-8.2 8.2a5.6 5.6 0 01-7.9-7.9l8.6-8.6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8.4 11.7l7.4-7.4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.9"
+      />
+    </svg>
+  );
+}
+
 export default function Page() {
   const [step, setStep] = useState<Step>(1);
   const [uiStep, setUiStep] = useState<Step>(1);
   const [isFading, setIsFading] = useState(false);
 
   const [service, setService] = useState("");
-  const [date, setDate] = useState<string>(""); // YYYY-MM-DD
+  const [date, setDate] = useState<string>("");
   const [name, setName] = useState("");
   const [telegramId, setTelegramId] = useState<string | null>(null);
   const [comment, setComment] = useState("");
@@ -72,7 +102,6 @@ export default function Page() {
     const hf = tg?.HapticFeedback;
     if (!hf) return;
     try {
-      // Telegram docs: impactOccurred(light|medium|heavy|rigid|soft)
       hf.impactOccurred?.(type);
     } catch {}
   }
@@ -130,16 +159,13 @@ export default function Page() {
       <div className="absolute inset-0 z-0 gradientOverlay" />
 
       <div className="relative z-10 max-w-md mx-auto px-3 py-4 space-y-3">
-        {/* pills */}
         <div className="pillsRow">
           <div className={`stepPill ${uiStep === 1 ? "active" : ""}`}>Услуга</div>
           <div className={`stepPill ${uiStep === 2 ? "active" : ""}`}>Детали</div>
           <div className={`stepPill ${uiStep === 3 ? "active" : ""}`}>Готово</div>
         </div>
 
-        {/* CONTENT (fade transition) */}
         <div className={`stepWrap ${isFading ? "fadeOut" : "fadeIn"}`}>
-          {/* STEP 1 */}
           {uiStep === 1 && (
             <div className="space-y-1">
               {SERVICES.map((s) => (
@@ -162,10 +188,8 @@ export default function Page() {
             </div>
           )}
 
-          {/* STEP 2 */}
           {uiStep === 2 && (
             <div className="space-y-3 contentPad">
-              {/* DATE: calendar outside, date centered in its pill */}
               <div className="dateCenterRow">
                 <div className="calIcon" aria-hidden="true">
                   📅
@@ -190,7 +214,6 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* NAME: pill centered */}
               <div className="nameRowCenter">
                 <div className="namePill">
                   <input
@@ -211,7 +234,7 @@ export default function Page() {
                 rows={2}
               />
 
-              {/* paperclip only */}
+              {/* ✅ теперь SVG вместо эмодзи */}
               <label
                 className="attachBtn pressable"
                 title="Добавить фото"
@@ -224,9 +247,7 @@ export default function Page() {
                   onChange={(e) => e.target.files && addFiles(e.target.files)}
                   className="hiddenInput"
                 />
-                <span className="paperclip" aria-hidden="true">
-                  📎
-                </span>
+                <PaperclipIcon className="paperclipSvg" />
               </label>
 
               {images.length > 0 && (
@@ -252,7 +273,6 @@ export default function Page() {
             </div>
           )}
 
-          {/* STEP 3 */}
           {uiStep === 3 && (
             <div className="text-center space-y-2 py-3">
               <div className="doneTitle">Запись отправлена</div>
@@ -276,7 +296,6 @@ export default function Page() {
         </div>
       </div>
 
-      {/* Sticky bar */}
       <div
         className={`stickyBar ${uiStep === 2 ? "stickyShow" : "stickyHide"}`}
         aria-hidden={uiStep !== 2}
@@ -326,7 +345,6 @@ export default function Page() {
           display: flex;
           gap: 8px;
         }
-
         .stepPill {
           padding: 4px 8px;
           border-radius: 999px;
@@ -335,7 +353,6 @@ export default function Page() {
           font-size: 10px;
           opacity: 0.6;
         }
-
         .stepPill.active {
           background: rgba(255, 255, 255, 0.88);
           color: #000;
@@ -363,12 +380,10 @@ export default function Page() {
           border: 1px solid rgba(255, 255, 255, 0.14);
           text-align: left;
         }
-
         .serviceTitle {
           font-size: 11px;
           opacity: 0.75;
         }
-
         .servicePrice {
           font-size: 14px;
           font-weight: 500;
@@ -385,7 +400,6 @@ export default function Page() {
           color: white;
         }
 
-        /* DATE centered */
         .dateCenterRow {
           display: flex;
           align-items: center;
@@ -424,7 +438,6 @@ export default function Page() {
           letter-spacing: 0.2px;
         }
 
-        /* NAME centered */
         .nameRowCenter {
           display: flex;
           justify-content: center;
@@ -461,10 +474,11 @@ export default function Page() {
           cursor: pointer;
           user-select: none;
         }
-        .paperclip {
-          font-size: 18px;
-          line-height: 1;
-          filter: grayscale(1) contrast(1.05);
+        .paperclipSvg {
+          width: 18px;
+          height: 18px;
+          display: block;
+          color: rgba(255, 255, 255, 0.92);
         }
         .hiddenInput {
           display: none;
@@ -508,7 +522,6 @@ export default function Page() {
           opacity: 0;
           pointer-events: none;
         }
-
         .stickyInner {
           position: absolute;
           inset: 0;
@@ -518,7 +531,6 @@ export default function Page() {
           backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
         }
-
         .stickyContent {
           position: relative;
           display: flex;
@@ -533,7 +545,6 @@ export default function Page() {
           color: black;
           font-size: 13px;
         }
-
         .btnGhost {
           flex: 1;
           padding: 11px;
