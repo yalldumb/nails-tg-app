@@ -30,6 +30,26 @@ function addDays(d: Date, days: number) {
   return x;
 }
 
+function ClipIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M21 10.5L12.8 18.7a5 5 0 01-7.07-7.07L14.6 2.76a3.5 3.5 0 014.95 4.95L10.9 16.36a2 2 0 01-2.83-2.83l8.49-8.49"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function Page() {
   const [step, setStep] = useState<Step>(1);
   const [uiStep, setUiStep] = useState<Step>(1);
@@ -68,7 +88,8 @@ export default function Page() {
   }
 
   function addFiles(files: FileList | File[]) {
-    const list = Array.from(files).slice(0, 9 - images.length);
+    const MAX = 10;
+    const list = Array.from(files).slice(0, MAX - images.length);
     setImages((prev) => [...prev, ...list]);
   }
 
@@ -81,7 +102,7 @@ export default function Page() {
 
     const fd = new FormData();
     fd.append("serviceTitle", service);
-    fd.append("date", date); // ✅ только дата
+    fd.append("date", date); // только дата
     fd.append("clientName", name);
     if (telegramId) fd.append("telegramId", telegramId);
     fd.append("comment", comment);
@@ -98,7 +119,11 @@ export default function Page() {
 
   return (
     <main className="min-h-screen relative text-white overflow-hidden">
-      <img src="/bg.jpg" className="absolute inset-0 w-full h-full object-cover z-0" alt="" />
+      <img
+        src="/bg.jpg"
+        className="absolute inset-0 w-full h-full object-cover z-0"
+        alt=""
+      />
       <div className="absolute inset-0 z-0 vignette" />
       <div className="absolute inset-0 z-0 gradientOverlay" />
 
@@ -120,7 +145,6 @@ export default function Page() {
                   key={s.title}
                   onClick={() => {
                     setService(s.title);
-                    // ✅ если дата еще не выбрана — ставим сегодня по умолчанию
                     setDate((prev) => prev || minDate);
                     goTo(2);
                   }}
@@ -138,17 +162,19 @@ export default function Page() {
           {/* STEP 2 */}
           {uiStep === 2 && (
             <div className="space-y-2 contentPad">
-              {/* ✅ дата записи (без времени) */}
               <div className="dateRow">
                 <div className="dateLabel">Дата</div>
-                <input
-                  type="date"
-                  value={date}
-                  min={minDate}
-                  max={maxDate}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="dateInput pressable"
-                />
+                <div className="dateField">
+                  <span className="calIcon" aria-hidden="true">📅</span>
+                  <input
+                    type="date"
+                    value={date}
+                    min={minDate}
+                    max={maxDate}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="dateInput"
+                  />
+                </div>
               </div>
 
               <input
@@ -166,7 +192,7 @@ export default function Page() {
                 rows={2}
               />
 
-              {/* ✅ кнопка-скрепка для фото */}
+              {/* ✅ только скрепка, без текста и счетчика */}
               <div className="attachRow">
                 <label className="attachBtn pressable" title="Добавить фото">
                   <input
@@ -176,19 +202,25 @@ export default function Page() {
                     onChange={(e) => e.target.files && addFiles(e.target.files)}
                     className="hiddenInput"
                   />
-                  📎
+                  <ClipIcon />
                 </label>
-                <div className="attachHint">
-                  {images.length > 0 ? `Фото: ${images.length}/9` : "Добавь фото-примеры (до 9)"}
-                </div>
               </div>
 
               {images.length > 0 && (
                 <div className="grid grid-cols-3 gap-2">
                   {images.map((f, i) => (
                     <div key={i} className="relative">
-                      <img src={URL.createObjectURL(f)} className="h-16 w-full object-cover rounded-xl" alt="" />
-                      <button onClick={() => removeImage(i)} className="xBtn pressable">
+                      <img
+                        src={URL.createObjectURL(f)}
+                        className="h-16 w-full object-cover rounded-xl"
+                        alt=""
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(i)}
+                        className="xBtn pressable"
+                        aria-label="Удалить фото"
+                      >
                         ✕
                       </button>
                     </div>
@@ -222,7 +254,10 @@ export default function Page() {
       </div>
 
       {/* Sticky bar */}
-      <div className={`stickyBar ${uiStep === 2 ? "stickyShow" : "stickyHide"}`} aria-hidden={uiStep !== 2}>
+      <div
+        className={`stickyBar ${uiStep === 2 ? "stickyShow" : "stickyHide"}`}
+        aria-hidden={uiStep !== 2}
+      >
         <div className="stickyInner" />
         <div className="stickyContent">
           <button className="btnGhost pressable" onClick={() => goTo(1)} disabled={loading}>
@@ -316,7 +351,6 @@ export default function Page() {
           color: white;
         }
 
-        /* ✅ date row */
         .dateRow {
           display: flex;
           align-items: center;
@@ -327,15 +361,29 @@ export default function Page() {
           font-size: 12px;
           opacity: 0.75;
           padding-left: 2px;
+          min-width: 46px;
         }
-        .dateInput {
+        .dateField {
           flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 8px;
           padding: 9px 11px;
           border-radius: 12px;
           background: rgba(0, 0, 0, 0.42);
           border: 1px solid rgba(255, 255, 255, 0.14);
-          font-size: 12px;
+        }
+        .calIcon {
+          font-size: 14px;
+          opacity: 0.85;
+        }
+        .dateInput {
+          flex: 1;
+          background: none;
+          border: none;
+          outline: none;
           color: white;
+          font-size: 12px;
           min-width: 0;
         }
         .dateInput::-webkit-calendar-picker-indicator {
@@ -343,11 +391,10 @@ export default function Page() {
           filter: invert(1);
         }
 
-        /* ✅ attach row */
+        /* ✅ only clip button */
         .attachRow {
           display: flex;
           align-items: center;
-          gap: 10px;
         }
         .attachBtn {
           width: 36px;
@@ -357,17 +404,10 @@ export default function Page() {
           place-items: center;
           background: rgba(255, 255, 255, 0.08);
           border: 1px solid rgba(255, 255, 255, 0.12);
-          color: white;
-          font-size: 16px;
-          line-height: 1;
+          color: rgba(255, 255, 255, 0.92);
           cursor: pointer;
           user-select: none;
         }
-        .attachHint {
-          font-size: 11px;
-          opacity: 0.75;
-        }
-
         .hiddenInput {
           display: none;
         }
