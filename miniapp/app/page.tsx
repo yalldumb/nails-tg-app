@@ -598,19 +598,7 @@ export default function Page() {
 
         /* прячем <img>, но оставляем как fallback */
         .bgImg{ display:none; }
-`}
-        /* iOS Telegram background fix */
-        .bgRoot,
-        .bgRoot::before,
-        .bgFixed {
-          position: fixed !important;
-          inset: 0 !important;
-          height: 100svh !important;
-          transform: translateZ(0);
-          will-change: transform;
-        }
-
-</style>
+`}</style>
     </main>
   );
 }
