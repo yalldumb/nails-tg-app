@@ -477,6 +477,15 @@ export default function Page() {
         /* ✅ iOS fix: prevent automatic zoom on focus */
         html { -webkit-text-size-adjust: 100%; }
         input, textarea, select { font-size: 16px !important; }
+
+
+        /* ✅ iOS: stop auto-zoom on focus (Telegram/iOS) */
+        html { -webkit-text-size-adjust: 100%; }
+        input, textarea, select { font-size: 16px !important; }
+
+        /* ✅ чуть больше воздуха между полями (если где-то слипается) */
+        .input { margin-bottom: 10px; }
+        .input:last-of-type { margin-bottom: 0; }
 `}</style>
     </main>
   );
