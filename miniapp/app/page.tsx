@@ -154,7 +154,7 @@ export default function Page() {
 
           {/* STEP 2 */}
           {uiStep === 2 && (
-            <div className="space-y-2 contentPad">
+            <div className="fieldStack contentPad">
               {/* ✅ дата по центру над именем, без эмодзи */}
               <div className="centerStack">
                 <div className="datePill">{formatRu(date)}</div>
@@ -492,6 +492,14 @@ export default function Page() {
         .bgFixed{
           transform: translateZ(0);
           will-change: transform;
+        }
+
+
+        /* ✅ fieldStack gap */
+        .fieldStack{
+          display:flex;
+          flex-direction:column;
+          gap:12px;
         }
 `}</style>
     </main>
