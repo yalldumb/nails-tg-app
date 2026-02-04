@@ -115,7 +115,7 @@ export default function Page() {
 
   return (
     <main className="min-h-screen relative text-white overflow-hidden">
-      <img src="/bg.jpg" className="absolute inset-0 w-full h-full object-cover z-0" alt="" />
+      <img src="/bg.jpg" className="fixed inset-0 w-full h-full object-cover z-0 bgFixed" alt="" />
       <div className="absolute inset-0 z-0 vignette" />
       <div className="absolute inset-0 z-0 gradientOverlay" />
 
@@ -486,6 +486,13 @@ export default function Page() {
         /* ✅ чуть больше воздуха между полями (если где-то слипается) */
         .input { margin-bottom: 10px; }
         .input:last-of-type { margin-bottom: 0; }
+
+
+        /* ✅ bg fixed (stop iOS keyboard zoom illusion) */
+        .bgFixed{
+          transform: translateZ(0);
+          will-change: transform;
+        }
 `}</style>
     </main>
   );
