@@ -57,6 +57,8 @@ export default function Page() {
   useEffect(() => {
     // @ts-ignore
     const tg = window?.Telegram?.WebApp;
+    try { tg.expand?.(); tg.ready?.(); } catch (e) {}
+
     if (tg?.initDataUnsafe?.user) {
       const u = tg.initDataUnsafe.user;
       setName(u.first_name || "");
