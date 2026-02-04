@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
@@ -31,7 +31,6 @@ function addDays(d: Date, days: number) {
 }
 
 function formatRuDate(ymd: string) {
-  // ymd: YYYY-MM-DD -> DD.MM.YYYY
   const [y, m, d] = ymd.split("-");
   if (!y || !m || !d) return ymd;
   return `${d}.${m}.${y}`;
@@ -50,6 +49,8 @@ export default function Page() {
   const [images, setImages] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const tgRef = useRef<any>(null);
+
   const today = useMemo(() => new Date(), []);
   const minDate = useMemo(() => toYmd(today), [today]);
   const maxDate = useMemo(() => toYmd(addDays(today, 60)), [today]);
@@ -57,12 +58,24 @@ export default function Page() {
   useEffect(() => {
     // @ts-ignore
     const tg = window?.Telegram?.WebApp;
+    tgRef.current = tg || null;
+
     if (tg?.initDataUnsafe?.user) {
       const u = tg.initDataUnsafe.user;
       setName(u.first_name || "");
       setTelegramId(String(u.id));
     }
   }, []);
+
+  function haptic(type: "light" | "medium" | "heavy" = "light") {
+    const tg = tgRef.current;
+    const hf = tg?.HapticFeedback;
+    if (!hf) return;
+    try {
+      // Telegram docs: impactOccurred(light|medium|heavy|rigid|soft)
+      hf.impactOccurred?.(type);
+    } catch {}
+  }
 
   function goTo(next: Step) {
     if (next === uiStep) return;
@@ -76,10 +89,12 @@ export default function Page() {
 
   function addFiles(files: FileList | File[]) {
     const list = Array.from(files).slice(0, 10 - images.length);
+    if (list.length > 0) haptic("light");
     setImages((prev) => [...prev, ...list]);
   }
 
   function removeImage(i: number) {
+    haptic("light");
     setImages((prev) => prev.filter((_, idx) => idx !== i));
   }
 
@@ -94,6 +109,7 @@ export default function Page() {
     fd.append("comment", comment);
     images.forEach((f) => fd.append("images", f));
 
+    haptic("medium");
     setLoading(true);
     try {
       await fetch(`${API}/bookings`, { method: "POST", body: fd });
@@ -105,7 +121,11 @@ export default function Page() {
 
   return (
     <main className="min-h-screen relative text-white overflow-hidden">
-      <img src="/bg.jpg" className="absolute inset-0 w-full h-full object-cover z-0" alt="" />
+      <img
+        src="/bg.jpg"
+        className="absolute inset-0 w-full h-full object-cover z-0"
+        alt=""
+      />
       <div className="absolute inset-0 z-0 vignette" />
       <div className="absolute inset-0 z-0 gradientOverlay" />
 
@@ -126,6 +146,7 @@ export default function Page() {
                 <button
                   key={s.title}
                   onClick={() => {
+                    haptic("light");
                     setService(s.title);
                     setDate((prev) => prev || minDate);
                     goTo(2);
@@ -144,9 +165,11 @@ export default function Page() {
           {/* STEP 2 */}
           {uiStep === 2 && (
             <div className="space-y-3 contentPad">
-              {/* ✅ ДАТА: календарик СНАРУЖИ, дата по центру в своей рамке */}
+              {/* DATE: calendar outside, date centered in its pill */}
               <div className="dateCenterRow">
-                <div className="calIcon" aria-hidden="true">📅</div>
+                <div className="calIcon" aria-hidden="true">
+                  📅
+                </div>
 
                 <div className="datePill pressable">
                   <input
@@ -154,19 +177,21 @@ export default function Page() {
                     value={date}
                     min={minDate}
                     max={maxDate}
-                    onChange={(e) => setDate(e.target.value)}
+                    onChange={(e) => {
+                      haptic("light");
+                      setDate(e.target.value);
+                    }}
                     className="dateNative"
                     aria-label="Дата записи"
                   />
-                  {/* fallback визуально (если iOS рисует текст странно) */}
                   <div className="dateText" aria-hidden="true">
                     {date ? formatRuDate(date) : ""}
                   </div>
                 </div>
               </div>
 
-              {/* ✅ ИМЯ: только имя в рамке (не на всю строку) */}
-              <div className="nameRow">
+              {/* NAME: pill centered */}
+              <div className="nameRowCenter">
                 <div className="namePill">
                   <input
                     value={name}
@@ -186,8 +211,12 @@ export default function Page() {
                 rows={2}
               />
 
-              {/* 📎 только скрепка (без текста/счетчиков) */}
-              <label className="attachBtn pressable" title="Добавить фото">
+              {/* paperclip only */}
+              <label
+                className="attachBtn pressable"
+                title="Добавить фото"
+                onClick={() => haptic("light")}
+              >
                 <input
                   type="file"
                   multiple
@@ -195,15 +224,25 @@ export default function Page() {
                   onChange={(e) => e.target.files && addFiles(e.target.files)}
                   className="hiddenInput"
                 />
-                <span className="paperclip" aria-hidden="true">📎</span>
+                <span className="paperclip" aria-hidden="true">
+                  📎
+                </span>
               </label>
 
               {images.length > 0 && (
                 <div className="grid grid-cols-3 gap-2">
                   {images.map((f, i) => (
                     <div key={i} className="relative">
-                      <img src={URL.createObjectURL(f)} className="h-16 w-full object-cover rounded-xl" alt="" />
-                      <button onClick={() => removeImage(i)} className="xBtn pressable" aria-label="Удалить фото">
+                      <img
+                        src={URL.createObjectURL(f)}
+                        className="h-16 w-full object-cover rounded-xl"
+                        alt=""
+                      />
+                      <button
+                        onClick={() => removeImage(i)}
+                        className="xBtn pressable"
+                        aria-label="Удалить фото"
+                      >
                         ✕
                       </button>
                     </div>
@@ -222,6 +261,7 @@ export default function Page() {
               <button
                 className="btn pressable mt-2"
                 onClick={() => {
+                  haptic("light");
                   setService("");
                   setDate("");
                   setComment("");
@@ -237,13 +277,27 @@ export default function Page() {
       </div>
 
       {/* Sticky bar */}
-      <div className={`stickyBar ${uiStep === 2 ? "stickyShow" : "stickyHide"}`} aria-hidden={uiStep !== 2}>
+      <div
+        className={`stickyBar ${uiStep === 2 ? "stickyShow" : "stickyHide"}`}
+        aria-hidden={uiStep !== 2}
+      >
         <div className="stickyInner" />
         <div className="stickyContent">
-          <button className="btnGhost pressable" onClick={() => goTo(1)} disabled={loading}>
+          <button
+            className="btnGhost pressable"
+            onClick={() => {
+              haptic("light");
+              goTo(1);
+            }}
+            disabled={loading}
+          >
             Назад
           </button>
-          <button className="btn pressable" onClick={submit} disabled={loading || !name || !service || !date}>
+          <button
+            className="btn pressable"
+            onClick={submit}
+            disabled={loading || !name || !service || !date}
+          >
             {loading ? "Отправка…" : "Отправить"}
           </button>
         </div>
@@ -331,7 +385,7 @@ export default function Page() {
           color: white;
         }
 
-        /* ✅ DATE centered pill */
+        /* DATE centered */
         .dateCenterRow {
           display: flex;
           align-items: center;
@@ -361,7 +415,7 @@ export default function Page() {
           inset: 0;
           width: 100%;
           height: 100%;
-          opacity: 0; /* кликается, но текст рисуем сами */
+          opacity: 0;
         }
         .dateText {
           font-size: 14px;
@@ -370,10 +424,10 @@ export default function Page() {
           letter-spacing: 0.2px;
         }
 
-        /* ✅ NAME only in small pill */
-        .nameRow {
+        /* NAME centered */
+        .nameRowCenter {
           display: flex;
-          justify-content: flex-start;
+          justify-content: center;
         }
         .namePill {
           display: inline-flex;
@@ -392,9 +446,9 @@ export default function Page() {
           font-size: 13px;
           width: 100%;
           min-width: 80px;
+          text-align: center;
         }
 
-        /* 📎 */
         .attachBtn {
           width: 38px;
           height: 38px;
