@@ -472,7 +472,12 @@ export default function Page() {
         .pressable:active {
           transform: scale(.98);
         }
-      `}</style>
+      
+
+        /* ✅ iOS fix: prevent automatic zoom on focus */
+        html { -webkit-text-size-adjust: 100%; }
+        input, textarea, select { font-size: 16px !important; }
+`}</style>
     </main>
   );
 }
