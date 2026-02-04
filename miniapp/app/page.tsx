@@ -180,11 +180,32 @@ export default function Page() {
 
       <div className="relative z-10 max-w-md mx-auto px-3 py-4 space-y-3">
         {/* pills */}
-        <div className="pillsRow">
-          <div className={`stepPill ${uiStep === 1 ? "active" : ""}`}>Услуга</div>
-          <div className={`stepPill ${uiStep === 2 ? "active" : ""}`}>Детали</div>
-          <div className={`stepPill ${uiStep === 3 ? "active" : ""}`}>Готово</div>
-        </div>
+        <div className="topBar">
+  <button
+    className={`topIcon ${uiStep === 2 ? "show" : "hide"}`}
+    onClick={() => goTo(1)}
+    disabled={loading}
+    aria-label="Назад"
+    type="button"
+  >
+    ‹
+  </button>
+
+  <div className="pillsRow pillsCenter">
+    <div className={`stepPill ${uiStep === 1 ? "active" : ""}`}>Услуга</div>
+    <div className={`stepPill ${uiStep === 2 ? "active" : ""}`}>Детали</div>
+    <div className={`stepPill ${uiStep === 3 ? "active" : ""}`}>Готово</div>
+  </div>
+
+  <button
+    className={`topAction ${uiStep === 2 ? "show" : "hide"}`}
+    onClick={submit}
+    disabled={loading || !name || !service || !date}
+    type="button"
+  >
+    Отправить
+  </button>
+</div>
 
         {/* CONTENT (fade transition) */}
         <div className={`stepWrap ${isFading ? "fadeOut" : "fadeIn"}`}>
@@ -285,29 +306,8 @@ export default function Page() {
         </div>
       </div>
 
-      {/* Sticky bar */}
-      <div className={`stickyBar ${uiStep === 2 ? "stickyShow" : "stickyHide"}`} aria-hidden={uiStep !== 2}>
-        <div className="stickyInner" />
-        <div className="stickyContent">
-          <button
-            className="btnGhost pressable"
-            onClick={() => {
-              haptic("light");
-              goTo(1);
-            }}
-            disabled={loading}
-          >
-            Назад
-          </button>
-          <button
-            className="btn pressable"
-            onClick={submit}
-            disabled={loading || !service || !date}
-          >
-            {loading ? "Отправка…" : "Отправить"}
-          </button>
-        </div>
-      </div>
+      
+
 
       <style jsx global>{`
         .vignette {
@@ -596,6 +596,55 @@ export default function Page() {
 
         /* меньше дерганий/боуна при появлении клавы */
         html, body { overscroll-behavior: none; }
+
+        .topBar {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .pillsCenter {
+          flex: 1;
+          justify-content: center;
+        }
+
+        .topIcon {
+          width: 38px;
+          height: 34px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: rgba(255, 255, 255, 0.92);
+          font-size: 20px;
+          font-weight: 700;
+          line-height: 1;
+          display: grid;
+          place-items: center;
+          padding-bottom: 2px;
+        }
+
+        .topAction {
+          height: 34px;
+          padding: 0 14px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.88);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: #000;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .topIcon.hide,
+        .topAction.hide {
+          opacity: 0;
+          pointer-events: none;
+        }
+        .topIcon.show,
+        .topAction.show {
+          opacity: 1;
+          pointer-events: auto;
+        }
+
 `}</style>
     </main>
   );
