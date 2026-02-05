@@ -63,6 +63,7 @@ export default function Page() {
   const [comment, setComment] = useState("");
   const [images, setImages] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
+  const [claws, setClaws] = useState(false);
   const [serviceGroup, setServiceGroup] = useState<"main" | "lengths">("main");
 
   const today = useMemo(() => new Date(), []);
@@ -174,7 +175,7 @@ export default function Page() {
     fd.append("date", date);
     fd.append("clientName", name);
     if (telegramId) fd.append("telegramId", telegramId);
-    fd.append("comment", comment);
+    fd.append("comment", (claws ? ((comment ? comment + "\n" : "") + "Когти: да (+1000)") : comment));
     images.forEach((f) => fd.append("images", f));
 
     setLoading(true);
@@ -338,6 +339,7 @@ export default function Page() {
                   setDate("");
                   setComment("");
                   setImages([]);
+                  setClaws(false);
                   goTo(1);
                 }}
               >
