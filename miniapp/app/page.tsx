@@ -248,7 +248,7 @@ export default function Page() {
                   >
                     <div className="serviceTitle">{s.title}</div>
                     {s.price !== null ? (
-                      <div className="servicePrice">{typeof s.price === "number" ? `${s.price} ₽` : s.price}</div>
+                      <div className="servicePrice">{typeof s.price === "number" ? `${s.price + (claws ? 1000 : 0)} ₽` : s.price}</div>
                     ) : null}
                   </button>
                 ))}
@@ -257,7 +257,41 @@ export default function Page() {
 
             {serviceGroup === "lengths" && (
               <div className="space-y-1">
-                {SERVICE_LENGTHS.map((s) => (
+                {/* claws accordion */}
+              <div
+                className={`clawsBox ${clawsOpen ? "open" : ""}`}
+                onClick={() => setClawsOpen((v) => !v)}
+                role="button"
+                aria-expanded={clawsOpen}
+              >
+                <div className="clawsHead">
+                  <div className="clawsTitle">Когти</div>
+                  <div className="clawsRight">
+                    <div className="clawsPlus">+1000₽</div>
+                    <button
+                      type="button"
+                      className={`toggleBtn ${claws ? "on" : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // если есть хаптик — дернем, иначе просто переключим
+                        try { (hapticLight as any)(); } catch (_) {}
+                        setClaws((v) => !v);
+                      }}
+                      aria-label="Когти +1000₽"
+                    >
+                      <span className="toggleKnob" />
+                    </button>
+                  </div>
+                </div>
+
+                {clawsOpen && (
+                  <div className="clawsDesc">
+                    Прибавим +1000₽ к любому наращиванию (любая длина).
+                  </div>
+                )}
+              </div>
+
+              {SERVICE_LENGTHS.map((s) => (
                   <button
                     key={s.title}
                     onClick={() => {
