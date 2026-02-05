@@ -4,23 +4,22 @@ import { useEffect, useMemo, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
-const SERVICE_MAIN: { title: string; price: number | null; value: string }[] = [
-  { title: "Натуральные ногти", price: 3000, value: "Натуральные ногти" },
-  { title: "Наращивание / Коррекция", price: null, value: "__LENGTHS__" },
+const SERVICE_MAIN: { title: string; price: number | null; value: "natural" | "extension" }[] = [
+  { title: "Натуральные ногти", price: 3000, value: "natural" },
+  { title: "Наращивание / Коррекция", price: null, value: "extension" },
 ];
 
-const SERVICE_LENGTHS: { title: string; price: number | string }[] = [
+const SERVICE_LENGTHS: { title: string; price: number }[] = [
   { title: "Короткие", price: 3500 },
   { title: "Средние", price: 4000 },
   { title: "Длинные", price: 4500 },
   { title: "Длинные+", price: 5000 },
   { title: "Экстра", price: 7000 },
   { title: "Экстра+", price: 8000 },
-  { title: "Когти", price: "+1000" },
 ];
 
-
 type Step = 1 | 2 | 3;
+type ServiceGroup = "main" | "lengths";
 
 function toYmd(d: Date) {
   const y = d.getFullYear();
@@ -28,21 +27,53 @@ function toYmd(d: Date) {
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
-
 function addDays(d: Date, days: number) {
   const x = new Date(d);
   x.setDate(x.getDate() + days);
   return x;
 }
 
-function formatRu(ymd: string) {
-  // ymd: YYYY-MM-DD -> DD.MM.YYYY
+function formatYmdToRu(ymd: string) {
+  // ymd = YYYY-MM-DD
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
   if (!m) return ymd;
-  return `${m[3]}.${m[2]}.${m[1]}`;
+  const [, y, mm, dd] = m;
+  return `${dd}.${mm}.${y}`;
+}
+
+function PaperclipIcon() {
+  // ч/б, “толще”
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M9 17.5l8.1-8.1a3 3 0 10-4.2-4.2L5.8 12.3a5 5 0 107.1 7.1l8.5-8.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
 
 export default function Page() {
+  const [step, setStep] = useState<Step>(1);
+  const [uiStep, setUiStep] = useState<Step>(1);
+  const [isFading, setIsFading] = useState(false);
+
+  const [serviceGroup, setServiceGroup] = useState<ServiceGroup>("main");
+  const [serviceTitle, setServiceTitle] = useState("");
+  const [servicePrice, setServicePrice] = useState<number | null>(null);
+
+  const [claws, setClaws] = useState(false);
+
+  const [date, setDate] = useState<string>(""); // YYYY-MM-DD
+  const [name, setName] = useState("");
+  const [telegramId, setTelegramId] = useState<string | null>(null);
+  const [comment, setComment] = useState("");
+  const [images, setImages] = useState<File[]>([]);
+  const [loading, setLoading] = useState(false);
 
   function hapticLight() {
     try {
@@ -52,34 +83,13 @@ export default function Page() {
     } catch {}
   }
 
-  const [step, setStep] = useState<Step>(1);
-  const [uiStep, setUiStep] = useState<Step>(1);
-  const [isFading, setIsFading] = useState(false);
-
-  const [service, setService] = useState("");
-  const [date, setDate] = useState<string>(""); // YYYY-MM-DD
-  const [name, setName] = useState("");
-  const [telegramId, setTelegramId] = useState<string | null>(null);
-  const [comment, setComment] = useState("");
-  const [images, setImages] = useState<File[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [claws, setClaws] = useState(false);
-  const [clawsOpen, setClawsOpen] = useState(false);
-  const [serviceGroup, setServiceGroup] = useState<"main" | "lengths">("main");
-
   const today = useMemo(() => new Date(), []);
   const minDate = useMemo(() => toYmd(today), [today]);
   const maxDate = useMemo(() => toYmd(addDays(today, 60)), [today]);
 
   useEffect(() => {
-    if (uiStep === 1) setServiceGroup("main");
-  }, [uiStep]);
-
-  useEffect(() => {
     // @ts-ignore
     const tg = window?.Telegram?.WebApp;
-    try { tg.expand?.(); tg.ready?.(); } catch (e) {}
-
     if (tg?.initDataUnsafe?.user) {
       const u = tg.initDataUnsafe.user;
       setName(u.first_name || "");
@@ -87,71 +97,10 @@ export default function Page() {
     }
   }, []);
 
-  // ✅ iOS focus: prevent scroll jump (body lock)
+  // чтобы не “залипали” под-экраны услуг
   useEffect(() => {
-    let locked = false;
-    let scrollY = 0;
-
-    function lock() {
-      if (locked) return;
-      locked = true;
-      scrollY = window.scrollY || 0;
-
-      const b = document.body;
-      b.style.position = "fixed";
-      b.style.top = `-${scrollY}px`;
-      b.style.left = "0";
-      b.style.right = "0";
-      b.style.width = "100%";
-      b.style.overflow = "hidden";
-    }
-
-    function unlock() {
-      if (!locked) return;
-      locked = false;
-
-      const b = document.body;
-      b.style.position = "";
-      b.style.top = "";
-      b.style.left = "";
-      b.style.right = "";
-      b.style.width = "";
-      b.style.overflow = "";
-
-      window.scrollTo(0, scrollY);
-    }
-
-    // фокус/блюр на любом инпуте/текстарии
-    function onFocusIn(e: any) {
-      const t = e?.target;
-      if (!t) return;
-      const tag = String(t.tagName || "").toLowerCase();
-      if (tag === "input" || tag === "textarea" || tag === "select") lock();
-    }
-    function onFocusOut() {
-      // небольшой таймаут чтобы iOS успел закончить анимацию клавиатуры
-      setTimeout(unlock, 60);
-    }
-
-    document.addEventListener("focusin", onFocusIn, true);
-    document.addEventListener("focusout", onFocusOut, true);
-
-    return () => {
-      document.removeEventListener("focusin", onFocusIn, true);
-      document.removeEventListener("focusout", onFocusOut, true);
-      unlock();
-    };
-  }, []);
-
-
-  // ✅ haptics (restore)
-  function haptic(kind: "light" | "medium" = "light") {
-    // @ts-ignore
-    const tg = window?.Telegram?.WebApp;
-    try {
-      tg?.HapticFeedback?.impactOccurred?.(kind);
-    } catch {}
-  }
+    if (uiStep === 1) setServiceGroup("main");
+  }, [uiStep]);
 
   function goTo(next: Step) {
     if (next === uiStep) return;
@@ -164,7 +113,7 @@ export default function Page() {
   }
 
   function addFiles(files: FileList | File[]) {
-    const list = Array.from(files).slice(0, 10 - images.length); // ✅ до 10
+    const list = Array.from(files).slice(0, 10 - images.length); // до 10
     setImages((prev) => [...prev, ...list]);
   }
 
@@ -172,39 +121,63 @@ export default function Page() {
     setImages((prev) => prev.filter((_, idx) => idx !== i));
   }
 
+  const canUseClaws = useMemo(() => {
+    // “Когти” только для наращивания/коррекции (lengths)
+    return serviceTitle !== "" && servicePrice !== null && serviceTitle !== "Натуральные ногти";
+  }, [serviceTitle, servicePrice]);
+
+  const shownPrice = useMemo(() => {
+    if (servicePrice == null) return null;
+    return servicePrice + (canUseClaws && claws ? 1000 : 0);
+  }, [servicePrice, claws, canUseClaws]);
+
   async function submit() {
     if (!API) return;
 
     const fd = new FormData();
-    fd.append("serviceTitle", service);
+    fd.append("serviceTitle", serviceTitle);
+    if (shownPrice != null) fd.append("servicePrice", String(shownPrice));
     fd.append("date", date);
+
     fd.append("clientName", name);
     if (telegramId) fd.append("telegramId", telegramId);
-    fd.append("comment", (claws ? ((comment ? comment + "\n" : "") + "Когти: да (+1000)") : comment));
+
+    // чтобы ничего не ломать в бэке: claws кладём отдельным флагом + дублируем в коммент (на всякий)
+    fd.append("claws", claws && canUseClaws ? "1" : "0");
+
+    const finalComment =
+      (comment || "").trim() +
+      (claws && canUseClaws ? (comment.trim() ? "\n" : "") + "Когти: да" : "");
+    fd.append("comment", finalComment);
+
     images.forEach((f) => fd.append("images", f));
 
     setLoading(true);
     try {
       await fetch(`${API}/bookings`, { method: "POST", body: fd });
-      haptic("medium");
       goTo(3);
     } finally {
       setLoading(false);
     }
   }
 
+  const navTitle = uiStep === 1 ? "Услуга" : uiStep === 2 ? "Детали" : "Готово";
+
   return (
     <main className="min-h-screen relative text-white overflow-hidden">
-      <img src="/bg.jpg" className="fixed inset-0 w-full h-full object-cover z-0 bgFixed" alt="" />
+      <img src="/bg.jpg" className="absolute inset-0 w-full h-full object-cover z-0" alt="" />
       <div className="absolute inset-0 z-0 vignette" />
       <div className="absolute inset-0 z-0 gradientOverlay" />
 
       <div className="relative z-10 max-w-md mx-auto px-3 py-4 space-y-3">
-        {/* pills */}
+        {/* iOS-like top bar */}
         <div className="topBar">
           <button
-            className={`topIcon ${uiStep !== 1 || (uiStep === 1 && serviceGroup === "lengths") ? "show" : "hide"}`}
-            onClick={() => { hapticLight(); if (uiStep === 1 && serviceGroup === "lengths") { setServiceGroup("main"); } else { goTo(1); } }}
+            className={`topIcon ${uiStep !== 1 ? "show" : "hide"}`}
+            onClick={() => {
+              hapticLight();
+              goTo(1);
+            }}
             disabled={loading}
             aria-label="Назад"
             type="button"
@@ -212,14 +185,15 @@ export default function Page() {
             ‹
           </button>
 
-          <div className="navTitle">
-            {uiStep === 1 ? "Услуга" : uiStep === 2 ? "Детали" : "Готово"}
-          </div>
+          <div className="navTitle">{navTitle}</div>
 
           <button
             className={`topAction ${uiStep === 2 ? "show" : "hide"}`}
-            onClick={() => { hapticLight(); submit(); }}
-            disabled={loading || !name || !service || !date}
+            onClick={() => {
+              hapticLight();
+              submit();
+            }}
+            disabled={loading || !name || !serviceTitle || !date}
             type="button"
           >
             Отправить
@@ -230,97 +204,137 @@ export default function Page() {
         <div className={`stepWrap ${isFading ? "fadeOut" : "fadeIn"}`}>
           {/* STEP 1 */}
           {uiStep === 1 && (
-          <div className="space-y-1">
-            {serviceGroup === "main" && (
-              <div className="space-y-1">
-                {SERVICE_MAIN.map((s) => (
-                  <button
-                    key={s.title}
-                    onClick={() => {
-                      if (s.value === "__LENGTHS__") {
-                        setServiceGroup("lengths");
-                        return;
-                      }
-                      setService(s.value);
-                      setDate((prev) => prev || minDate);
-                      goTo(2);
-                    }}
-                    className="glassCard pressable"
-                  >
-                    <div className="serviceTitle">{s.title}</div>
-                    {s.price !== null ? (
-                      <div className="servicePrice">{typeof s.price === "number" ? `${s.price + (claws ? 1000 : 0)} ₽` : s.price}</div>
-                    ) : null}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {serviceGroup === "lengths" && (
-              <div className="space-y-1">
-                {/* claws accordion */}
-              <div
-                className={`clawsBox ${clawsOpen ? "open" : ""}`}
-                onClick={() => setClawsOpen((v) => !v)}
-                role="button"
-                aria-expanded={clawsOpen}
-              >
-                <div className="clawsHead">
-                  <div className="clawsTitle">Когти</div>
-                  <div className="clawsRight">
-                    <div className="clawsPlus">+1000₽</div>
+            <div className="space-y-2">
+              {serviceGroup === "main" && (
+                <div className="space-y-2">
+                  {SERVICE_MAIN.map((s) => (
                     <button
-                      type="button"
-                      className={`toggleBtn ${claws ? "on" : ""}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // если есть хаптик — дернем, иначе просто переключим
-                        try { (hapticLight as any)(); } catch (_) {}
-                        setClaws((v) => !v);
+                      key={s.value}
+                      className="glassCard pressable"
+                      onClick={() => {
+                        hapticLight();
+
+                        if (!date) setDate(minDate);
+
+                        if (s.value === "natural") {
+                          setServiceTitle(s.title);
+                          setServicePrice(s.price);
+                          setClaws(false);
+                          goTo(2);
+                        } else {
+                          setServiceGroup("lengths");
+                        }
                       }}
-                      aria-label="Когти +1000₽"
+                      type="button"
                     >
-                      <span className="toggleKnob" />
+                      <div className="serviceTitle">{s.title}</div>
+
+                      {s.price != null ? (
+                        <div className="servicePrice">{s.price} ₽</div>
+                      ) : (
+                        <div className="serviceSub">Выбрать длину</div>
+                      )}
                     </button>
+                  ))}
+                </div>
+              )}
+
+              {serviceGroup === "lengths" && (
+                <div className="space-y-2">
+                  <div className="subHeadRow">
+                    <button
+                      className="subBack pressable"
+                      onClick={() => {
+                        hapticLight();
+                        setServiceGroup("main");
+                      }}
+                      type="button"
+                      aria-label="Назад к услугам"
+                    >
+                      ‹
+                    </button>
+                    <div className="subHead">Наращивание / Коррекция</div>
+                    <div className="subSpacer" />
+                  </div>
+
+                  <div className="space-y-1">
+                    {SERVICE_LENGTHS.map((l) => {
+                      const price = l.price;
+                      const priceShown = price + (claws ? 1000 : 0);
+
+                      return (
+                        <button
+                          key={l.title}
+                          className="glassCard pressable"
+                          onClick={() => {
+                            hapticLight();
+                            if (!date) setDate(minDate);
+
+                            setServiceTitle(l.title);
+                            setServicePrice(price);
+                            goTo(2);
+                          }}
+                          type="button"
+                        >
+                          <div className="serviceTitle">{l.title}</div>
+                          <div className="servicePrice">{priceShown} ₽</div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
+              )}
+            </div>
+          )}
 
-                {clawsOpen && (
-                  <div className="clawsDesc">
-                    Прибавим +1000₽ к любому наращиванию (любая длина).
-                  </div>
-                )}
-              </div>
-
-              {SERVICE_LENGTHS.map((s) => (
-                  <button
-                    key={s.title}
-                    onClick={() => {
-                      setService(s.title);
-                      setDate((prev) => prev || minDate);
-                      goTo(2);
-                    }}
-                    className="glassCard pressable"
-                  >
-                    <div className="serviceTitle">{s.title}</div>
-                    <div className="servicePrice">
-                      {typeof s.price === "number" ? `${s.price} ₽` : s.price}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* STEP 2 */}
+          {/* STEP 2 */}
           {uiStep === 2 && (
-            <div className="fieldStack contentPad">
-              {/* ✅ дата по центру над именем, без эмодзи */}
-              <div className="centerStack">
-                <div className="datePill">{formatRu(date)}</div>
-                <div className="namePill">{name || " "}</div>
+            <div className="space-y-2 contentPad">
+              {/* дата по центру, без эмодзи */}
+              <div className="centerRow">
+                <div className="datePill pressable">
+                  <input
+                    type="date"
+                    value={date}
+                    min={minDate}
+                    max={maxDate}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="dateInput"
+                    aria-label="Дата записи"
+                  />
+                  <div className="dateText" aria-hidden="true">
+                    {formatYmdToRu(date || minDate)}
+                  </div>
+                </div>
               </div>
+
+              {/* имя по центру (только табличка, не вся строка) */}
+              <div className="centerRow">
+                <div className="namePill" aria-label="Имя">
+                  {name || " "}
+                </div>
+              </div>
+
+              {/* “Когти” — тумблер в Деталях (только для длины) */}
+              {canUseClaws && (
+                <button
+                  className="clawsRow pressable"
+                  onClick={() => {
+                    hapticLight();
+                    setClaws((v) => !v);
+                  }}
+                  type="button"
+                  aria-pressed={claws}
+                >
+                  <div className="clawsLeft">
+                    <div className="clawsTitle">Когти</div>
+                    <div className="clawsSub">+1000 ₽</div>
+                  </div>
+                  <div className={`toggleBtn ${claws ? "on" : ""}`}>
+                    <div className="toggleKnob" />
+                  </div>
+                </button>
+              )}
 
               <textarea
                 value={comment}
@@ -330,17 +344,21 @@ export default function Page() {
                 rows={2}
               />
 
-              {/* ✅ скрепка-иконка (пока emoji оставляем, svg сделаем отдельным шагом как ты просил раньше) */}
-              <label className="attachBtn pressable" title="Добавить фото">
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={(e) => e.target.files && addFiles(e.target.files)}
-                  className="hiddenInput"
-                />
-                📎
-              </label>
+              {/* скрепка без текста */}
+              <div className="attachRow">
+                <label className="attachBtn pressable" title="Добавить фото">
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={(e) => e.target.files && addFiles(e.target.files)}
+                    className="hiddenInput"
+                  />
+                  <span className="clip">
+                    <PaperclipIcon />
+                  </span>
+                </label>
+              </div>
 
               {images.length > 0 && (
                 <div className="grid grid-cols-3 gap-2">
@@ -349,10 +367,12 @@ export default function Page() {
                       <img src={URL.createObjectURL(f)} className="h-16 w-full object-cover rounded-xl" alt="" />
                       <button
                         onClick={() => {
-                          haptic("light");
+                          hapticLight();
                           removeImage(i);
                         }}
                         className="xBtn pressable"
+                        type="button"
+                        aria-label="Удалить фото"
                       >
                         ✕
                       </button>
@@ -368,29 +388,10 @@ export default function Page() {
             <div className="text-center space-y-2 py-3">
               <div className="doneTitle">Запись отправлена</div>
               <p className="doneSub">Мастер свяжется с вами</p>
-
-              <button
-                className="btn pressable mt-2"
-                onClick={() => {
-                  haptic("light");
-                  setService("");
-                  setServiceGroup("main");
-                  setDate("");
-                  setComment("");
-                  setImages([]);
-                  setClaws(false);
-                  goTo(1);
-                }}
-              >
-                Новая запись
-              </button>
             </div>
           )}
         </div>
       </div>
-
-      
-
 
       <style jsx global>{`
         .vignette {
@@ -411,42 +412,61 @@ export default function Page() {
           );
         }
 
-
-        /* bgFixed: prevent iOS TG keyboard jump */
-        .bgFixed {
-          position: fixed !important;
-          inset: 0 !important;
-          width: 100vw;
-          height: 100svh;
-          transform: translateZ(0);
-          backface-visibility: hidden;
-          will-change: transform;
-          pointer-events: none;
-        }
-        @supports (height: 100dvh) {
-          .bgFixed { height: 100dvh; }
+        .topBar {
+          display: grid;
+          grid-template-columns: 52px 1fr 92px;
+          align-items: center;
+          height: 44px;
+          border-radius: 16px;
+          background: rgba(0, 0, 0, 0.28);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          padding: 0 8px;
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
         }
 
-        /* ✅ (1) pills bigger + bold */
-        .pillsRow {
-          display: flex;
-          gap: 10px;
+        .navTitle {
+          text-align: center;
+          font-size: 13px;
+          font-weight: 600;
+          letter-spacing: 0.2px;
+          opacity: 0.95;
         }
 
-        .stepPill {
-          padding: 6px 12px;
-          border-radius: 999px;
+        .topIcon {
+          height: 34px;
+          width: 44px;
+          border-radius: 12px;
+          display: grid;
+          place-items: center;
           background: rgba(255, 255, 255, 0.06);
           border: 1px solid rgba(255, 255, 255, 0.12);
-          font-size: 12px;
-          font-weight: 700;
-          opacity: 0.6;
+          font-size: 22px;
+          color: #fff;
+          line-height: 1;
         }
 
-        .stepPill.active {
-          background: rgba(255, 255, 255, 0.90);
+        .topAction {
+          height: 34px;
+          padding: 0 12px;
+          border-radius: 12px;
+          background: rgba(255, 255, 255, 0.92);
+          border: 1px solid rgba(255, 255, 255, 0.12);
           color: #000;
+          font-size: 12px;
+          font-weight: 700;
+          justify-self: end;
+        }
+
+        .topIcon.hide,
+        .topAction.hide {
+          opacity: 0;
+          pointer-events: none;
+        }
+        .topIcon.show,
+        .topAction.show {
           opacity: 1;
+          pointer-events: auto;
         }
 
         .stepWrap {
@@ -473,67 +493,180 @@ export default function Page() {
 
         .serviceTitle {
           font-size: 11px;
-          opacity: 0.75;
+          opacity: 0.78;
         }
 
         .servicePrice {
-          font-size: 14px;
-          font-weight: 500;
-          margin-top: 1px;
+          font-size: 15px;
+          font-weight: 600;
+          margin-top: 2px;
+          letter-spacing: 0.2px;
+        }
+
+        .serviceSub {
+          margin-top: 6px;
+          font-size: 11px;
+          opacity: 0.62;
+        }
+
+        .subHeadRow {
+          display: grid;
+          grid-template-columns: 34px 1fr 34px;
+          align-items: center;
+          gap: 10px;
+          margin-top: 2px;
+          margin-bottom: 2px;
+        }
+        .subBack {
+          height: 30px;
+          width: 34px;
+          border-radius: 12px;
+          display: grid;
+          place-items: center;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          font-size: 18px;
+          line-height: 1;
+          color: #fff;
+        }
+        .subHead {
+          text-align: center;
+          font-size: 12px;
+          font-weight: 600;
+          opacity: 0.9;
+        }
+        .subSpacer {
+          height: 1px;
+        }
+
+        .centerRow {
+          display: flex;
+          justify-content: center;
+        }
+
+        .datePill {
+          position: relative;
+          width: 220px;
+          border-radius: 14px;
+          background: rgba(0, 0, 0, 0.42);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          height: 38px;
+          display: grid;
+          place-items: center;
+        }
+
+        .dateInput {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          opacity: 0;
+        }
+
+        .dateText {
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.2px;
+        }
+
+        .namePill {
+          width: 220px;
+          height: 38px;
+          border-radius: 14px;
+          background: rgba(0, 0, 0, 0.42);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          display: grid;
+          place-items: center;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.2px;
+        }
+
+        .clawsRow {
+          width: 100%;
+          padding: 10px 12px;
+          border-radius: 16px;
+          background: rgba(0, 0, 0, 0.42);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          text-align: left;
+        }
+        .clawsTitle {
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.2px;
+        }
+        .clawsSub {
+          margin-top: 2px;
+          font-size: 11px;
+          opacity: 0.7;
+        }
+
+        .toggleBtn {
+          width: 44px;
+          height: 24px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          position: relative;
+          flex: 0 0 auto;
+        }
+        .toggleKnob {
+          width: 20px;
+          height: 20px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.92);
+          position: absolute;
+          top: 1px;
+          left: 1px;
+          transform: translateX(0);
+          transition: transform 160ms ease, background 160ms ease;
+        }
+        .toggleBtn.on {
+          background: rgba(255, 255, 255, 0.18);
+        }
+        .toggleBtn.on .toggleKnob {
+          transform: translateX(20px);
+          background: #000;
         }
 
         .input {
           width: 100%;
-          padding: 10px 11px;
-          border-radius: 12px;
+          padding: 10px 12px;
+          border-radius: 14px;
           background: rgba(0, 0, 0, 0.42);
           border: 1px solid rgba(255, 255, 255, 0.14);
           font-size: 12px;
           color: white;
         }
 
-        /* ✅ (2) date centered above name, no emoji */
-        .centerStack {
+        .attachRow {
           display: flex;
-          flex-direction: column;
           align-items: center;
+          justify-content: flex-start;
           gap: 10px;
-          margin-top: 4px;
-          margin-bottom: 2px;
-        }
-
-        .datePill {
-          padding: 10px 14px;
-          border-radius: 16px;
-          background: rgba(0,0,0,.45);
-          border: 1px solid rgba(255,255,255,.14);
-          font-size: 14px;
-          font-weight: 700;
-          width: min(320px, 100%);
-          text-align: center;
-        }
-
-        .namePill {
-          padding: 10px 14px;
-          border-radius: 16px;
-          background: rgba(0,0,0,.45);
-          border: 1px solid rgba(255,255,255,.14);
-          font-size: 14px;
-          font-weight: 600;
-          width: min(320px, 100%);
-          text-align: center;
         }
 
         .attachBtn {
-          width: 38px;
-          height: 38px;
+          width: 36px;
+          height: 36px;
           border-radius: 999px;
           display: grid;
           place-items: center;
-          background: rgba(255,255,255,.08);
-          border: 1px solid rgba(255,255,255,.14);
-          font-size: 16px;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: rgba(255, 255, 255, 0.92);
+          cursor: pointer;
           user-select: none;
+        }
+
+        .clip {
+          display: grid;
+          place-items: center;
+          transform: translateY(0.5px);
         }
 
         .hiddenInput {
@@ -556,68 +689,12 @@ export default function Page() {
         }
 
         .contentPad {
-          padding-bottom: 92px;
-        }
-
-        .stickyBar {
-          position: fixed;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          padding: 12px 14px;
-          z-index: 50;
-          pointer-events: none;
-          opacity: 0;
-          transition: opacity 160ms ease;
-        }
-        .stickyShow {
-          opacity: 1;
-          pointer-events: auto;
-        }
-        .stickyHide {
-          opacity: 0;
-          pointer-events: none;
-        }
-
-        .stickyInner {
-          position: absolute;
-          inset: 0;
-          border-top-left-radius: 18px;
-          border-top-right-radius: 18px;
-          background: rgba(0, 0, 0, 0.62);
-          backdrop-filter: blur(14px);
-          -webkit-backdrop-filter: blur(14px);
-        }
-
-        .stickyContent {
-          position: relative;
-          display: flex;
-          gap: 10px;
-        }
-
-        .btn {
-          flex: 1;
-          padding: 14px;
-          border-radius: 18px;
-          background: white;
-          color: black;
-          font-size: 14px;
-          transition: transform 160ms ease;
-        }
-
-        .btnGhost {
-          flex: 1;
-          padding: 14px;
-          border-radius: 18px;
-          background: rgba(255,255,255,.08);
-          color: white;
-          font-size: 14px;
-          border: 1px solid rgba(255,255,255,.14);
+          padding-bottom: 14px;
         }
 
         .doneTitle {
           font-size: 15px;
-          font-weight: 500;
+          font-weight: 600;
         }
         .doneSub {
           font-size: 12px;
@@ -625,120 +702,14 @@ export default function Page() {
         }
 
         .pressable {
+          transition: transform 120ms ease, filter 120ms ease;
           -webkit-tap-highlight-color: transparent;
         }
         .pressable:active {
-          transform: scale(.98);
+          transform: scale(0.985);
+          filter: brightness(1.05);
         }
-      
-
-        /* ✅ iOS fix: prevent automatic zoom on focus */
-        html { -webkit-text-size-adjust: 100%; }
-        input, textarea, select { font-size: 16px !important; }
-
-
-        /* ✅ iOS: stop auto-zoom on focus (Telegram/iOS) */
-        html { -webkit-text-size-adjust: 100%; }
-        input, textarea, select { font-size: 16px !important; }
-
-        /* ✅ чуть больше воздуха между полями (если где-то слипается) */
-        .input { margin-bottom: 10px; }
-        .input:last-of-type { margin-bottom: 0; }
-
-
-        /* ✅ bg fixed (stop iOS keyboard zoom illusion) */
-        .bgFixed{
-          transform: translateZ(0);
-          will-change: transform;
-        }
-
-
-        /* ✅ fieldStack gap */
-        .fieldStack{
-          display:flex;
-          flex-direction:column;
-          gap:12px;
-        }
-
-
-        /* ✅ dynamic viewport (reduce iOS keyboard jump) */
-        :root{ --app-vh: 100svh; }
-        @supports (height: 100dvh){
-          :root{ --app-vh: 100dvh; }
-        }
-
-        /* Tailwind min-h-screen => 100vh. Перекрываем на svh/dvh */
-        .min-h-screen{ min-height: var(--app-vh) !important; }
-
-        /* фон всегда по высоте app viewport */
-        .bgFixed{
-          top:0;
-          left:0;
-          height: var(--app-vh) !important;
-        }
-
-        /* меньше дерганий/боуна при появлении клавы */
-        html, body { overscroll-behavior: none; }
-          .topBar {
-          display: grid;
-          grid-template-columns: 44px 1fr auto;
-          align-items: center;
-          gap: 10px;
-          height: 44px;
-        }
-
-        .navTitle {
-          text-align: center;
-          font-size: 16px;
-          font-weight: 800;
-          letter-spacing: 0.2px;
-          opacity: 0.95;
-          user-select: none;
-        }
-
-        .pillsCenter {
-          flex: 1;
-          justify-content: center;
-        }
-          .topIcon {
-          width: 44px;
-          height: 44px;
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          color: rgba(255, 255, 255, 0.92);
-          font-size: 28px;
-          font-weight: 800;
-          line-height: 1;
-          display: grid;
-          place-items: center;
-          padding-bottom: 2px;
-          -webkit-tap-highlight-color: transparent;
-        }
-          .topAction {
-          height: 36px;
-          padding: 0 14px;
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.88);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          color: #000;
-          font-size: 13px;
-          font-weight: 800;
-          -webkit-tap-highlight-color: transparent;
-        }
-
-        .topIcon.hide,
-        .topAction.hide {
-          opacity: 0;
-          pointer-events: none;
-        }
-        .topIcon.show,
-        .topAction.show {
-          opacity: 1;
-          pointer-events: auto;
-        }
-
-`}</style>
+      `}</style>
     </main>
   );
 }
