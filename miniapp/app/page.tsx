@@ -64,6 +64,7 @@ export default function Page() {
   const [images, setImages] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [claws, setClaws] = useState(false);
+  const [clawsOpen, setClawsOpen] = useState(false);
   const [serviceGroup, setServiceGroup] = useState<"main" | "lengths">("main");
 
   const today = useMemo(() => new Date(), []);
