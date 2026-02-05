@@ -183,7 +183,7 @@ export default function Page() {
         <div className="topBar">
           <button
             className={`topIcon ${uiStep !== 1 ? "show" : "hide"}`}
-            onClick={() => goTo(1)}
+            onClick={() => { hapticLight(); goTo(1); }}
             disabled={loading}
             aria-label="Назад"
             type="button"
@@ -197,7 +197,7 @@ export default function Page() {
 
           <button
             className={`topAction ${uiStep === 2 ? "show" : "hide"}`}
-            onClick={submit}
+            onClick={() => { hapticLight(); submit(); }}
             disabled={loading || !name || !service || !date}
             type="button"
           >
