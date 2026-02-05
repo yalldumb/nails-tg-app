@@ -26,3 +26,6 @@ dist
 # db / local scripts (если не хочешь хранить в git)
 backend/schema.sql
 backend/db.js
+
+.env
+.env.local
