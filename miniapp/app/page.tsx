@@ -71,6 +71,10 @@ export default function Page() {
   const maxDate = useMemo(() => toYmd(addDays(today, 60)), [today]);
 
   useEffect(() => {
+    if (uiStep === 1) setServiceGroup("main");
+  }, [uiStep]);
+
+  useEffect(() => {
     // @ts-ignore
     const tg = window?.Telegram?.WebApp;
     try { tg.expand?.(); tg.ready?.(); } catch (e) {}
