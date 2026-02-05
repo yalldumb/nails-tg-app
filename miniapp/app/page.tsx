@@ -244,11 +244,7 @@ export default function Page() {
                     <div className="serviceTitle">{s.title}</div>
                     {s.price !== null ? (
                       <div className="servicePrice">{typeof s.price === "number" ? `${s.price} ₽` : s.price}</div>
-                    ) : (
-                      <div className="serviceTitle" style={{ marginTop: 2, opacity: 0.65 }}>
-                        Выбрать длину
-                      </div>
-                    )}
+                    ) : null}
                   </button>
                 ))}
               </div>
