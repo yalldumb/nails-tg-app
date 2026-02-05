@@ -161,7 +161,8 @@ export default function Page() {
     }
   }
 
-  const navTitle = uiStep === 1 ? "Ноготочки" : uiStep === 2 ? "" : "Готово";
+  // Step 1 uses a centered pill title (“Ноготочки”), so keep the plain title empty there.
+  const navTitle = uiStep === 2 ? "Детали" : uiStep === 3 ? "Готово" : "";
 
   return (
     <main className="min-h-screen relative text-white overflow-hidden">
@@ -186,8 +187,8 @@ export default function Page() {
           </button>
 
           <div className="navTitle">
-  {uiStep === 1 ? <span className="topPill">Ноготочки</span> : navTitle}
-</div>
+            {uiStep === 1 ? <span className="topPill">Ноготочки</span> : navTitle}
+          </div>
 
           <button
             className={`topAction ${uiStep === 2 ? "show" : "hide"}`}
