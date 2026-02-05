@@ -161,8 +161,7 @@ export default function Page() {
     }
   }
 
-  // Step 1 uses a centered pill title (“Ноготочки”), so keep the plain title empty there.
-  const navTitle = uiStep === 2 ? "Детали" : uiStep === 3 ? "Готово" : "";
+  const navTitle = uiStep === 1 ? "Услуга" : uiStep === 2 ? "Детали" : "Готово";
 
   return (
     <main className="min-h-screen relative text-white overflow-hidden">
@@ -186,9 +185,7 @@ export default function Page() {
             ‹
           </button>
 
-          <div className="navTitle">
-            {uiStep === 1 ? <span className="topPill">Ноготочки</span> : navTitle}
-          </div>
+          <div className="navTitle">{navTitle}</div>
 
           <button
             className={`topAction ${uiStep === 2 ? "show" : "hide"}`}
@@ -443,71 +440,324 @@ export default function Page() {
       </div>
 
       <style jsx global>{`
-.vignette {
-  background: radial-gradient(
-    ellipse at center,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 0.35) 55%,
-    rgba(0, 0, 0, 0.78) 100%
-  );
-}
+        .vignette {
+          background: radial-gradient(
+            ellipse at center,
+            rgba(0, 0, 0, 0) 0%,
+            rgba(0, 0, 0, 0.35) 55%,
+            rgba(0, 0, 0, 0.78) 100%
+          );
+        }
 
-.gradientOverlay {
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0.35) 0%,
-    rgba(0, 0, 0, 0.12) 42%,
-    rgba(0, 0, 0, 0.58) 100%
-  );
-}
+        .gradientOverlay {
+          background: linear-gradient(
+            180deg,
+            rgba(0, 0, 0, 0.35) 0%,
+            rgba(0, 0, 0, 0.12) 42%,
+            rgba(0, 0, 0, 0.58) 100%
+          );
+        }
 
-.topBar {
-  display: grid;
-  grid-template-columns: 52px 1fr 92px;
-  align-items: center;
-  height: 44px;
-  border-radius: 16px;
-  background: rgba(0, 0, 0, 0.28);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 0 8px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
+        .topBar {
+          display: grid;
+          grid-template-columns: 52px 1fr 92px;
+          align-items: center;
+          height: 44px;
+          border-radius: 16px;
+          background: rgba(0, 0, 0, 0.28);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          padding: 0 8px;
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+        }
 
-.navTitle {
-  text-align: center;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  opacity: 0.95;
-}
+        .navTitle {
+          text-align: center;
+          font-size: 13px;
+          font-weight: 600;
+          letter-spacing: 0.2px;
+          opacity: 0.95;
+        }
 
-.topPill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 18px;
-  border-radius: 18px;
-  background: rgba(0, 0, 0, 0.28);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-  margin: 0 auto;
-}
+        .topIcon {
+          height: 34px;
+          width: 44px;
+          border-radius: 12px;
+          display: grid;
+          place-items: center;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          font-size: 22px;
+          color: #fff;
+          line-height: 1;
+        }
 
-.pressable {
-  transition: transform 120ms ease, filter 120ms ease;
-  -webkit-tap-highlight-color: transparent;
-}
+        .topAction {
+          height: 34px;
+          padding: 0 12px;
+          border-radius: 12px;
+          background: rgba(255, 255, 255, 0.92);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: #000;
+          font-size: 12px;
+          font-weight: 700;
+          justify-self: end;
+        }
 
-.pressable:active {
-  transform: scale(0.985);
-  filter: brightness(1.05);
-}
-`}</style>
+        .topIcon.hide,
+        .topAction.hide {
+          opacity: 0;
+          pointer-events: none;
+        }
+        .topIcon.show,
+        .topAction.show {
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        .stepWrap {
+          transition: opacity 140ms ease, transform 140ms ease;
+          will-change: opacity, transform;
+        }
+        .fadeIn {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .fadeOut {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+
+        .glassCard {
+          width: 100%;
+          padding: 12px 12px;
+          border-radius: 16px;
+          background: rgba(0, 0, 0, 0.42);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          text-align: left;
+        }
+
+        .serviceTitle {
+          font-size: 11px;
+          opacity: 0.78;
+        }
+
+        .servicePrice {
+          transition: transform 160ms ease, opacity 160ms ease;
+
+          font-size: 15px;
+          font-weight: 600;
+          margin-top: 2px;
+          letter-spacing: 0.2px;
+        }
+
+        .serviceSub {
+          margin-top: 6px;
+          font-size: 11px;
+          opacity: 0.62;
+        }
+
+        .subHeadRow {
+          display: grid;
+          grid-template-columns: 34px 1fr 34px;
+          align-items: center;
+          gap: 10px;
+          margin-top: 2px;
+          margin-bottom: 2px;
+        }
+        .subBack {
+          height: 30px;
+          width: 34px;
+          border-radius: 12px;
+          display: grid;
+          place-items: center;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          font-size: 18px;
+          line-height: 1;
+          color: #fff;
+        }
+        .subHead {
+          text-align: center;
+          font-size: 12px;
+          font-weight: 600;
+          opacity: 0.9;
+        }
+        .subSpacer {
+          height: 1px;
+        }
+
+        .centerRow {
+          display: flex;
+          justify-content: center;
+        }
+
+        .datePill {
+          position: relative;
+          width: 220px;
+          border-radius: 14px;
+          background: rgba(0, 0, 0, 0.42);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          height: 38px;
+          display: grid;
+          place-items: center;
+        }
+
+        .dateInput {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          opacity: 0;
+        }
+
+        .dateText {
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.2px;
+        }
+
+        .namePill {
+          width: 220px;
+          height: 38px;
+          border-radius: 14px;
+          background: rgba(0, 0, 0, 0.42);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          display: grid;
+          place-items: center;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.2px;
+        }
+
+        .clawsRow {
+          width: 100%;
+          padding: 10px 12px;
+          border-radius: 16px;
+          background: rgba(0, 0, 0, 0.42);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          text-align: left;
+        }
+        .clawsTitle {
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.2px;
+        }
+        .clawsSub {
+          margin-top: 2px;
+          font-size: 11px;
+          opacity: 0.7;
+        }
+
+        .toggleBtn {
+          width: 44px;
+          height: 24px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          position: relative;
+          flex: 0 0 auto;
+        }
+        .toggleKnob {
+          width: 20px;
+          height: 20px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.92);
+          position: absolute;
+          top: 1px;
+          left: 1px;
+          transform: translateX(0);
+          transition: transform 160ms ease, background 160ms ease;
+        }
+        .toggleBtn.on {
+          background: rgba(255, 255, 255, 0.18);
+        }
+        .toggleBtn.on .toggleKnob {
+          transform: translateX(20px);
+          background: #000;
+        }
+
+        .input {
+          width: 100%;
+          padding: 10px 12px;
+          border-radius: 14px;
+          background: rgba(0, 0, 0, 0.42);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          font-size: 12px;
+          color: white;
+        }
+
+        .attachRow {
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          gap: 10px;
+        }
+
+        .attachBtn {
+          width: 36px;
+          height: 36px;
+          border-radius: 999px;
+          display: grid;
+          place-items: center;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: rgba(255, 255, 255, 0.92);
+          cursor: pointer;
+          user-select: none;
+        }
+
+        .clip {
+          display: grid;
+          place-items: center;
+          transform: translateY(0.5px);
+        }
+
+        .hiddenInput {
+          display: none;
+        }
+
+        .xBtn {
+          position: absolute;
+          top: 6px;
+          right: 6px;
+          width: 22px;
+          height: 22px;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.65);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          color: white;
+          font-size: 11px;
+          line-height: 22px;
+          text-align: center;
+        }
+
+        .contentPad {
+          padding-bottom: 14px;
+        }
+
+        .doneTitle {
+          font-size: 15px;
+          font-weight: 600;
+        }
+        .doneSub {
+          font-size: 12px;
+          opacity: 0.7;
+        }
+
+        .pressable {
+          transition: transform 120ms ease, filter 120ms ease;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .pressable:active {
+          transform: scale(0.985);
+          filter: brightness(1.05);
+        }
+      `}</style>
     </main>
   );
 }
