@@ -204,19 +204,6 @@ export default function Page() {
             Отправить
           </button>
         </div>
-    <div className={`stepPill ${uiStep === 2 ? "active" : ""}`}>Детали</div>
-    <div className={`stepPill ${uiStep === 3 ? "active" : ""}`}>Готово</div>
-  </div>
-
-  <button
-    className={`topAction ${uiStep === 2 ? "show" : "hide"}`}
-    onClick={submit}
-    disabled={loading || !name || !service || !date}
-    type="button"
-  >
-    Отправить
-  </button>
-</div>
 
         {/* CONTENT (fade transition) */}
         <div className={`stepWrap ${isFading ? "fadeOut" : "fadeIn"}`}>
