@@ -29,3 +29,15 @@ backend/db.js
 
 .env
 .env.local
+
+# mac
+.DS_Store
+
+# env
+.env
+.env.local
+.env.*.local
+
+# node
+node_modules/
+backend/node_modules/
