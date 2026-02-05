@@ -161,7 +161,7 @@ export default function Page() {
     }
   }
 
-  const navTitle = uiStep === 1 ? "Услуга" : uiStep === 2 ? "Детали" : "Готово";
+  const navTitle = uiStep === 1 ? "Ноготочки" : uiStep === 2 ? "" : "Готово";
 
   return (
     <main className="min-h-screen relative text-white overflow-hidden">
@@ -185,7 +185,9 @@ export default function Page() {
             ‹
           </button>
 
-          <div className="navTitle">{navTitle}</div>
+          <div className="navTitle">
+  {uiStep === 1 ? <span className="topPill">Ноготочки</span> : navTitle}
+</div>
 
           <button
             className={`topAction ${uiStep === 2 ? "show" : "hide"}`}
