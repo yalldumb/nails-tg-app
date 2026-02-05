@@ -4,12 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
-const SERVICE_MAIN = [
+const SERVICE_MAIN: { title: string; price: number | null; value: string }[] = [
   { title: "Натуральные ногти", price: 3000, value: "Натуральные ногти" },
   { title: "Наращивание / Коррекция", price: null, value: "__LENGTHS__" },
 ];
 
-const SERVICE_LENGTHS = [
+const SERVICE_LENGTHS: { title: string; price: number | string }[] = [
   { title: "Короткие", price: 3500 },
   { title: "Средние", price: 4000 },
   { title: "Длинные", price: 4500 },
