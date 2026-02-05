@@ -181,18 +181,29 @@ export default function Page() {
       <div className="relative z-10 max-w-md mx-auto px-3 py-4 space-y-3">
         {/* pills */}
         <div className="topBar">
-  <button
-    className={`topIcon ${uiStep === 2 ? "show" : "hide"}`}
-    onClick={() => goTo(1)}
-    disabled={loading}
-    aria-label="Назад"
-    type="button"
-  >
-    ‹
-  </button>
+          <button
+            className={`topIcon ${uiStep !== 1 ? "show" : "hide"}`}
+            onClick={() => goTo(1)}
+            disabled={loading}
+            aria-label="Назад"
+            type="button"
+          >
+            ‹
+          </button>
 
-  <div className="pillsRow pillsCenter">
-    <div className={`stepPill ${uiStep === 1 ? "active" : ""}`}>Услуга</div>
+          <div className="navTitle">
+            {uiStep === 1 ? "Услуга" : uiStep === 2 ? "Детали" : "Готово"}
+          </div>
+
+          <button
+            className={`topAction ${uiStep === 2 ? "show" : "hide"}`}
+            onClick={submit}
+            disabled={loading || !name || !service || !date}
+            type="button"
+          >
+            Отправить
+          </button>
+        </div>
     <div className={`stepPill ${uiStep === 2 ? "active" : ""}`}>Детали</div>
     <div className={`stepPill ${uiStep === 3 ? "active" : ""}`}>Готово</div>
   </div>
@@ -596,42 +607,52 @@ export default function Page() {
 
         /* меньше дерганий/боуна при появлении клавы */
         html, body { overscroll-behavior: none; }
-
-        .topBar {
-          display: flex;
+          .topBar {
+          display: grid;
+          grid-template-columns: 44px 1fr auto;
           align-items: center;
           gap: 10px;
+          height: 44px;
+        }
+
+        .navTitle {
+          text-align: center;
+          font-size: 16px;
+          font-weight: 800;
+          letter-spacing: 0.2px;
+          opacity: 0.95;
+          user-select: none;
         }
 
         .pillsCenter {
           flex: 1;
           justify-content: center;
         }
-
-        .topIcon {
-          width: 38px;
-          height: 34px;
+          .topIcon {
+          width: 44px;
+          height: 44px;
           border-radius: 999px;
           background: rgba(255, 255, 255, 0.06);
           border: 1px solid rgba(255, 255, 255, 0.12);
           color: rgba(255, 255, 255, 0.92);
-          font-size: 20px;
-          font-weight: 700;
+          font-size: 28px;
+          font-weight: 800;
           line-height: 1;
           display: grid;
           place-items: center;
           padding-bottom: 2px;
+          -webkit-tap-highlight-color: transparent;
         }
-
-        .topAction {
-          height: 34px;
+          .topAction {
+          height: 36px;
           padding: 0 14px;
           border-radius: 999px;
           background: rgba(255, 255, 255, 0.88);
           border: 1px solid rgba(255, 255, 255, 0.12);
           color: #000;
-          font-size: 12px;
-          font-weight: 700;
+          font-size: 13px;
+          font-weight: 800;
+          -webkit-tap-highlight-color: transparent;
         }
 
         .topIcon.hide,
