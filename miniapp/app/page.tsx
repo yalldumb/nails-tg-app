@@ -4,8 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
-const SERVICES = [
-  { title: "Натуральные ногти", price: 3000 },
+const SERVICE_MAIN = [
+  { title: "Натуральные ногти", price: 3000, value: "Натуральные ногти" },
+  { title: "Наращивание / Коррекция", price: null, value: "__LENGTHS__" },
+];
+
+const SERVICE_LENGTHS = [
   { title: "Короткие", price: 3500 },
   { title: "Средние", price: 4000 },
   { title: "Длинные", price: 4500 },
@@ -14,6 +18,7 @@ const SERVICES = [
   { title: "Экстра+", price: 8000 },
   { title: "Когти", price: "+1000" },
 ];
+
 
 type Step = 1 | 2 | 3;
 
@@ -58,6 +63,7 @@ export default function Page() {
   const [comment, setComment] = useState("");
   const [images, setImages] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
+  const [serviceGroup, setServiceGroup] = useState<"main" | "lengths">("main");
 
   const today = useMemo(() => new Date(), []);
   const minDate = useMemo(() => toYmd(today), [today]);
@@ -191,8 +197,8 @@ export default function Page() {
         {/* pills */}
         <div className="topBar">
           <button
-            className={`topIcon ${uiStep !== 1 ? "show" : "hide"}`}
-            onClick={() => { hapticLight(); goTo(1); }}
+            className={`topIcon ${uiStep !== 1 || (uiStep === 1 && serviceGroup === "lengths") ? "show" : "hide"}`}
+            onClick={() => { hapticLight(); if (uiStep === 1 && serviceGroup === "lengths") { setServiceGroup("main"); } else { goTo(1); } }}
             disabled={loading}
             aria-label="Назад"
             type="button"
@@ -218,28 +224,60 @@ export default function Page() {
         <div className={`stepWrap ${isFading ? "fadeOut" : "fadeIn"}`}>
           {/* STEP 1 */}
           {uiStep === 1 && (
-            <div className="space-y-1">
-              {SERVICES.map((s) => (
-                <button
-                  key={s.title}
-                  onClick={() => {
-                    haptic("light");
-                    setService(s.title);
-                    setDate((prev) => prev || minDate);
-                    goTo(2);
-                  }}
-                  className="glassCard pressable"
-                >
-                  <div className="serviceTitle">{s.title}</div>
-                  <div className="servicePrice">
-                    {typeof s.price === "number" ? `${s.price} ₽` : s.price}
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="space-y-1">
+            {serviceGroup === "main" && (
+              <div className="space-y-1">
+                {SERVICE_MAIN.map((s) => (
+                  <button
+                    key={s.title}
+                    onClick={() => {
+                      if (s.value === "__LENGTHS__") {
+                        setServiceGroup("lengths");
+                        return;
+                      }
+                      setService(s.value);
+                      setDate((prev) => prev || minDate);
+                      goTo(2);
+                    }}
+                    className="glassCard pressable"
+                  >
+                    <div className="serviceTitle">{s.title}</div>
+                    {s.price !== null ? (
+                      <div className="servicePrice">{typeof s.price === "number" ? `${s.price} ₽` : s.price}</div>
+                    ) : (
+                      <div className="serviceTitle" style={{ marginTop: 2, opacity: 0.65 }}>
+                        Выбрать длину
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
 
-          {/* STEP 2 */}
+            {serviceGroup === "lengths" && (
+              <div className="space-y-1">
+                {SERVICE_LENGTHS.map((s) => (
+                  <button
+                    key={s.title}
+                    onClick={() => {
+                      setService(s.title);
+                      setDate((prev) => prev || minDate);
+                      goTo(2);
+                    }}
+                    className="glassCard pressable"
+                  >
+                    <div className="serviceTitle">{s.title}</div>
+                    <div className="servicePrice">
+                      {typeof s.price === "number" ? `${s.price} ₽` : s.price}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* STEP 2 */}
           {uiStep === 2 && (
             <div className="fieldStack contentPad">
               {/* ✅ дата по центру над именем, без эмодзи */}
@@ -300,6 +338,7 @@ export default function Page() {
                 onClick={() => {
                   haptic("light");
                   setService("");
+                  setServiceGroup("main");
                   setDate("");
                   setComment("");
                   setImages([]);
