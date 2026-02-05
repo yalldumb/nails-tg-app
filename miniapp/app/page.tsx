@@ -38,6 +38,15 @@ function formatRu(ymd: string) {
 }
 
 export default function Page() {
+
+  function hapticLight() {
+    try {
+      // @ts-ignore
+      const tg = window?.Telegram?.WebApp;
+      tg?.HapticFeedback?.impactOccurred?.("light");
+    } catch {}
+  }
+
   const [step, setStep] = useState<Step>(1);
   const [uiStep, setUiStep] = useState<Step>(1);
   const [isFading, setIsFading] = useState(false);
