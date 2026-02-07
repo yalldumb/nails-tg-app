@@ -1,45 +1,28 @@
-const express = require("express");
-const cors = require("cors");
-const multer = require("multer");
-require("dotenv").config({ path: require("path").join(__dirname, "..", ".env.local") });
+// ---- start ----
+// Basic endpoints so Render / manual checks don’t show 404
+app.get("/", (_req, res) => {
+  res.status(200).send("ok");
+});
 
+app.get("/health", (_req, res) => {
+  res.status(200).json({ ok: true });
+});
 
-const app = express();
-const upload = multer({ storage: multer.memoryStorage() });
-
-app.use(cors());
-app.use(express.json());
-
-const bookings = []; // временно в памяти
-
-// создать запись
-app.post("/bookings", upload.array("images"), (req, res) => {
-  const { serviceTitle, servicePrice, date, clientName, comment } = req.body;
-
-  // ❌ если дата уже занята — не принимаем
-  if (bookings.find(b => b.date === date)) {
-    return res.status(409).json({ error: "DATE_BUSY" });
-  }
-
-  bookings.push({
-    serviceTitle,
-    servicePrice,
-    date,
-    clientName,
-    comment,
-    createdAt: new Date().toISOString(),
+// If the frontend calls this, we should return an array even if DB is empty.
+// NOTE: if you already have a real implementation earlier in the file, keep that one.
+// This fallback only helps avoid 404s.
+if (!app._router?.stack?.some((l) => l?.route?.path === "/busy-dates")) {
+  app.get("/busy-dates", async (_req, res) => {
+    try {
+      // If you have DB wired up elsewhere, replace this with the real query.
+      res.json([]);
+    } catch (e) {
+      res.status(500).json({ error: "busy-dates failed" });
+    }
   });
-
-  console.log("NEW BOOKING:", date, clientName);
-  res.json({ ok: true });
-});
-
-// получить все записи (для мастера / админки)
-app.get("/bookings", (req, res) => {
-  res.json(bookings);
-});
-
-const PORT = 3001;
+}
+const PORT = Number(process.env.PORT) || 3000;
 app.listen(PORT, () => {
-  console.log("Backend running on http://localhost:" + PORT);
+  console.log(`Backend listening on :${PORT}`);
+  console.log(`Health: http://localhost:${PORT}/health`);
 });
